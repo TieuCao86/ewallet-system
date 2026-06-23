@@ -1,5 +1,6 @@
 package com.ewallet.module.user.controller;
 
+import com.ewallet.module.user.dto.UserProfileResponse;
 import com.ewallet.module.user.entity.User;
 import com.ewallet.module.user.service.UserService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -18,10 +19,20 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping("/profile")
-    public User getProfile(Authentication authentication) {
+    public UserProfileResponse getProfile(
+            Authentication authentication) {
 
-        String email = authentication.getName();
+        User user =
+                userService.getByEmail(authentication.getName());
 
-        return userService.getByEmail(email);
+        return UserProfileResponse.builder()
+                .id(user.getId())
+                .fullName(user.getFullName())
+                .email(user.getEmail())
+                .phone(user.getPhone())
+                .role(user.getRole().name())
+                .status(user.getStatus().name())
+                .kycStatus(user.getKycStatus().name())
+                .build();
     }
 }

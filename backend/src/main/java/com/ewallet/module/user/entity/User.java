@@ -5,6 +5,8 @@ import com.ewallet.module.user.enums.Role;
 import com.ewallet.module.user.enums.UserStatus;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
@@ -59,12 +61,14 @@ public class User {
     /**
      * Số lần đăng nhập sai
      */
-    private Integer failedLoginAttempts;
+    @Column(nullable = false)
+    private Integer failedLoginAttempts = 0;
 
     /**
      * Bật/tắt xác thực 2 lớp
      */
-    private Boolean twoFactorEnabled;
+    @Column(nullable = false)
+    private Boolean twoFactorEnabled = false;
 
     /**
      * Lần đăng nhập cuối
@@ -74,10 +78,13 @@ public class User {
     /**
      * Thời gian tạo tài khoản
      */
+    @CreationTimestamp
+    @Column(updatable = false)
     private LocalDateTime createdAt;
 
     /**
      * Thời gian cập nhật gần nhất
      */
+    @UpdateTimestamp
     private LocalDateTime updatedAt;
 }

@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -31,6 +33,10 @@ public class AuthService {
         )){
             throw new RuntimeException("Wrong password");
         }
+
+        user.setLastLogin(LocalDateTime.now());
+
+        user.setFailedLoginAttempts(0);
 
         String token = jwtService.generateToken(user);
 
