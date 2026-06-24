@@ -1,0 +1,1729 @@
+VT Pay Project - eWallet Application 
+Phase 1
+
+
+Software Requirements Specification v1.0
+16/06/2026
+
+
+
+
+
+
+
+
+
+
+Revision History
+
+Ngày
+Mô tả
+Tác giả
+Bình luận
+16/6/2026
+Version 1.0
+Nguyễn Bá Việt
+Bản thảo đầu tiên
+
+
+
+
+
+
+Introduction
+Purpose
+Mục đích của tài liệu này nhằm mục đích thống nhât các yêu cầu xây dựng trang web VT Pay. Tài liệu này sẽ được sử dụng bởi tất cả các bên liên quan, bao gồm cả các nhà phát triển và người kiểm thử.
+Scope
+Phạm vi của dự án này chỉ giới hạn ở việc thử nghiệm các tính năng được mô tả trong các phần tiếp theo của tài liệu này.
+Việc kiểm thử phi chức năng như kiểm thử tải, kiểm thử hiệu năng nằm ngoài phạm vi của dự án này.
+Kiểm thử tự động nằm ngoài phạm vi công việc.
+Kiểm thử chức năng và giao diện bên ngoài nằm trong phạm vi và cần được kiểm thử.
+Definitions, Acronyms, and Abbreviations
+References
+Đặc tả yêu cầu
+The VT Pay will have 2 roles. 
+Admin
+User
+Following features/modules will be available to these 2 different roles
+
+Admin
+User
+User Management - Quản lí người dùng
+Profile
+Hồ sơ người dùng
+View Profile
+Account Management - Quản lí tài khoản khách hàng
+
+Update Profile
+KYC Verification - Xác thực KYC
+
+KYC Verification
+Wallet Management - Quản lí ví
+
+Close Account
+Freeze/Unfreeze Wallet - Đóng băng mở khóa ví
+Transaction Quản lí giao dịch
+Transfer Money - Chuyển tiền
+Transaction
+Quản lí giao dịch
+View Transactions - Xem danh sách giao dịch
+
+Top Up Wallet - Nạp tiền
+
+Search Transactions - Tìm giao dịch
+Wallet - Kiểm tra số dư
+
+Transaction Detail  - Chi tiết giao dịch
+Transaction History
+Lịch sử giao dịch và thống kê
+Recent Transactions - Giao dịch gần nhất
+LoginManagement - Quản lí đăng nhập
+
+Filter by Date - Lọc theo ngày
+
+
+
+Filter by Type - Lọc theo loại
+
+
+
+Export Statement - Xuất thống kê
+Change password - Đổi mật khẩu
+Security
+Bảo mật
+Change password - Đổi mật khẩu
+Login & Logout
+
+Change PIN - Đổi mã PIN
+
+ViewLoginHistory - Xem lịch sử đăng nhập
+
+Login & Logout
+
+
+Descriptions of the modules
+
+Module Name
+Applicable Roles
+Description
+Authentication
+Admin, User
+Thực hiện đăng nhập, đăng xuất và xác thực người dùng khi truy cập hệ thống.
+User Management
+Admin
+Quản lý thông tin người dùng, bao gồm xem danh sách người dùng, khóa hoặc mở khóa tài khoản.
+KYC Verification
+Admin, User
+Cho phép người dùng gửi hồ sơ xác thực danh tính và quản trị viên phê duyệt hoặc từ chối yêu cầu KYC.
+Wallet Management
+Admin, User
+Quản lý ví điện tử, kiểm tra số dư, trạng thái ví và thực hiện các thao tác liên quan đến ví.
+Freeze/Unfreeze Wallet
+Admin
+Đóng băng hoặc mở khóa ví nhằm xử lý các trường hợp gian lận, tranh chấp hoặc vi phạm chính sách.
+Transaction Management
+Admin
+Quản lý toàn bộ giao dịch trong hệ thống, tìm kiếm, theo dõi và xử lý các giao dịch bất thường hoặc thất bại.
+Profile Management
+User
+Cho phép người dùng xem và cập nhật thông tin cá nhân của mình.
+Account Management
+User
+Quản lý tài khoản cá nhân, bao gồm thay đổi mật khẩu, thay đổi mã PIN, liên kết tài khoản ngân hàng và đóng tài khoản khi cần thiết.
+Transfer Money
+User
+Thực hiện chuyển tiền giữa các tài khoản hoặc ví điện tử trong hệ thống.
+Top Up Wallet
+User
+Nạp tiền vào ví điện tử từ tài khoản ngân hàng hoặc các phương thức thanh toán được hỗ trợ.
+Wallet Balance Inquiry
+User
+Xem số dư hiện tại của ví điện tử.
+Transaction History
+User
+Xem lịch sử giao dịch, giao dịch gần nhất và các thông tin liên quan.
+Transaction Filtering
+User
+Tìm kiếm và lọc giao dịch theo ngày, loại giao dịch hoặc các tiêu chí khác.
+Export Statement
+User
+Xuất báo cáo hoặc sao kê giao dịch dưới dạng tệp để lưu trữ hoặc đối chiếu.
+Device Management
+User
+Quản lý các thiết bị đã đăng nhập và thu hồi quyền truy cập thiết bị khi cần thiết.
+Audit Log Management
+Admin
+Theo dõi lịch sử hoạt động của người dùng và quản trị viên nhằm phục vụ kiểm tra và đối soát.
+Notification Management
+Admin, User
+Quản lý thông báo giao dịch, cảnh báo bảo mật, thông báo hệ thống.
+Bank Account Management
+User
+Liên kết, hủy liên kết và quản lý tài khoản ngân hàng/thẻ thanh toán.
+Security Management
+Admin, User
+Quản lý OTP, Face ID, vân tay, xác thực hai lớp (2FA).
+Beneficiary Management
+User
+Quản lý danh sách người nhận thường xuyên.
+Withdrawal Management
+User
+Rút tiền từ ví về tài khoản ngân hàng đã liên kết.
+Fraud Detection Management
+Admin
+Phát hiện và xử lý giao dịch bất thường hoặc nghi ngờ gian lận.
+
+Modules Detail
+Module: AUTHENTICATION
+Authenticate and authorize users to access the E-Wallet system – Xác thực và phân quyền người dùng truy cập hệ thống ví điện tử.
+API 1: LOGIN
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Authentication
+POST
+/api/auth/login
+Input Parameter
+Parameter
+Type
+Description
+Username
+Mandatory
+Username or email
+Password
+Mandatory
+User password
+Output Parameter
+Parameter
+Type
+Description
+userId
+Long
+User identifier
+accessToken
+String
+JWT authentication token
+role
+String
+User role
+Error Code
+Error Code
+Error Message
+0
+Success
+1001
+Invalid Username or Password
+1002
+Account Locked
+1003
+Account Disabled
+2001
+User Not Found
+9001
+Internal Server Error
+
+API 2: LOGOUT
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Authentication
+POST
+/api/auth/logout
+Input Parameter
+Parameter
+Type
+Description
+UserID
+Mandatory
+User identifier
+AccessToken
+Mandatory
+Authentication token
+Output Parameter
+
+Parameter
+Type
+Description
+status
+String
+Logout status
+
+Error Code
+Error Code
+Error Message
+0
+Success
+1005
+Session Expired
+1006
+Invalid Token
+9001
+Internal Server Error
+
+Module: USER MANAGEMENT
+
+Manage user accounts in the system – Quản lý người dùng trong hệ thống.
+
+API 1: VIEW USERS
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Admin
+GET
+/api/admin/users
+Input Parameter
+Parameter
+Type
+Description
+AdminID
+Mandatory
+Administrator identifier
+AccessToken
+Mandatory
+Authentication token
+Output Parameter
+Parameter
+Type
+Description
+userId
+Long
+User identifier
+fullName
+String
+Full name
+email
+String
+Email address
+status
+String
+Account status
+Error Code
+Error Code
+Error Message
+0
+Success
+8002
+Permission Denied
+1006
+Invalid Token
+9001
+Internal Server Error
+
+API 2: LOCK USER
+
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Admin
+PUT
+/api/admin/users/{userId}/lock
+Input Parameter
+Parameter
+Type
+Description
+AdminID
+Mandatory
+Administrator identifier
+UserID
+Mandatory
+User identifier
+Output Parameter
+Parameter
+Type
+Description
+status
+String
+LOCKED
+
+API 3: UNLOCK USER
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Admin
+PUT
+/api/admin/users/{userId}/unlock
+Input Parameter
+Parameter
+Type
+Description
+AdminID
+Mandatory
+Administrator identifier
+UserID
+Mandatory
+User identifier
+Output Parameter
+Parameter
+Type
+Description
+status
+String
+ACTIVE
+
+Module: USER MANAGEMENT
+API 1: SUBMIT KYC
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+KYC
+POST
+/api/kyc/submit
+
+Input Parameter
+Parameter
+Type
+Description
+UserID
+Mandatory
+User identifier
+CitizenID
+Mandatory
+Citizen identification number
+FrontImage
+Mandatory
+Front side image of identity card
+BackImage
+Mandatory
+Back side image of identity card
+SelfieImage
+Mandatory
+Selfie image for face verification
+Output Parameter
+Parameter
+Type
+Description
+kycId
+Long
+KYC request identifier
+status
+String
+PENDING
+Error Code
+Error Code
+Error Message
+0
+Success
+2001
+User Not Found
+3001
+KYC Pending
+3002
+KYC Rejected
+3004
+Invalid Identity Document
+3005
+KYC Already Approved
+9001
+Internal Server Error
+
+API 2: APPROVE KYC
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Admin/KYC
+PUT
+/api/admin/kyc/{kycId}/approve
+
+API 3: REJECT KYC
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Admin/KYC
+PUT
+/api/admin/kyc/{kycId}/reject
+
+Module: WALLET MANAGEMENT
+API 1: VIEW WALLET
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Wallet
+GET
+/api/wallets
+Input Parameter
+Parameter
+Type
+Description
+UserID
+Mandatory
+User identifier
+Output Parameter
+Parameter
+Type
+Description
+walletId
+Long
+Wallet identifier
+status
+String
+Wallet status
+createdDate
+DateTime
+Wallet creation date
+API 2: WALLET BALANCE
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Wallet
+GET
+/api/wallets/balance
+Input Parameter
+Parameter
+Type
+Description
+UserID
+Mandatory
+User identifier
+WalletID
+Mandatory
+Wallet identifier
+Output Parameter
+Parameter
+Type
+Description
+walletId
+Long
+Wallet identifier
+balance
+Decimal
+Current wallet balance
+currency
+String
+Currency code
+Error Code
+Error Code
+Error Message
+Error Code
+Error Message
+0
+Success
+0
+Success
+4001
+Wallet Not Found
+4001
+Wallet Not Found
+4002
+Wallet Frozen
+4002
+Wallet Frozen
+1006
+Invalid Token
+1006
+Invalid Token
+9001
+Internal Server Error
+9001
+Internal Server Error
+
+Module: FREEZE / UNFREEZE WALLET
+API 1: FREEZE WALLET
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Admin/Wallet
+PUT
+/api/admin/wallets/freeze
+Input Parameter
+Parameter
+Type
+Description
+AdminID
+Mandatory
+Administrator identifier
+WalletID
+Mandatory
+Wallet identifier
+Output Parameter
+Parameter
+Type
+Description
+walletId
+Long
+Wallet identifier
+status
+String
+FROZEN
+Error Code
+Error Code
+Error Message
+0
+Success
+4001
+Wallet Not Found
+4002
+Wallet Already Frozen
+8002
+Permission Denied
+8003
+Action Not Allowed
+9001
+Internal Server Error
+
+API 2: UNFREEZE WALLET
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Admin/Wallet
+PUT
+/api/admin/wallets/unfreeze
+Input Parameter
+Parameter
+Type
+Description
+AdminID
+Mandatory
+Administrator identifier
+WalletID
+Mandatory
+Wallet identifier
+Output Parameter
+Parameter
+Type
+Description
+walletId
+Long
+Wallet identifier
+status
+String
+ACTIVE
+Error Code
+Error Code
+Error Message
+0
+Success
+4001
+Wallet Not Found
+4004
+Wallet Not Frozen
+8002
+Permission Denied
+8003
+Action Not Allowed
+9001
+Internal Server Error
+
+Module: TRANSACTION MANAGEMENT
+API 1: VIEW ALL TRANSACTIONS
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Admin/Transaction
+GET
+/api/admin/transactions
+Input Parameter
+Parameter
+Type
+Description
+AdminID
+Mandatory
+Administrator identifier
+Page
+Optional
+Page number
+Output Parameter
+Parameter
+Type
+Description
+transactionId
+String
+Transaction identifier
+amount
+Decimal
+Transaction amount
+type
+String
+Transaction type
+status
+String
+Transaction status
+   Error Code
+Error Code
+Error Message
+0
+Success
+5001
+Transaction Not Found
+8002
+Permission Denied
+9001
+Internal Server Error
+
+API 2: VIEW TRANSACTION DETAIL
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Admin/Transaction
+GET
+/api/admin/transactions/{transactionId}
+Input Parameter
+Parameter
+Type
+Description
+TransactionID
+Mandatory
+Transaction identifier
+Output Parameter
+Parameter
+Type
+Description
+transactionId
+String
+Transaction identifier
+senderId
+Long
+Sender identifier
+receiverId
+Long
+Receiver identifier
+amount
+Decimal
+Transaction amount
+createdAt
+DateTime
+Transaction date
+
+API 3: MARK FAILED TRANSACTION
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Admin/Transaction
+PUT
+/api/admin/transactions/{transactionId}/fail
+
+
+Module: PROFILE MANAGEMENT
+API 1: VIEW PROFILE
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+User
+GET
+/api/users/profile
+Input Parameter
+Parameter
+Type
+Description
+UserID
+Mandatory
+User identifier
+AccessToken
+Mandatory
+Authentication token
+Output Parameter
+Parameter
+Type
+Description
+userId
+Long
+User identifier
+fullName
+String
+Full name
+email
+String
+Email address
+phone
+String
+Phone number
+kycStatus
+String
+KYC verification status
+Error Code
+Error Code
+Error Message
+0
+Success
+1005
+Session Expired
+1006
+Invalid Token
+2001
+User Not Found
+9001
+Internal Server Error
+
+API 2: UPDATE PROFILE
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+User
+PUT
+/api/users/profile/update
+Input Parameter
+Parameter
+Type
+Description
+UserID
+Mandatory
+User identifier
+FullName
+Mandatory
+Full name
+Email
+Mandatory
+Email address
+Phone
+Mandatory
+Phone number
+Output Parameter
+Parameter
+Type
+Description
+status
+String
+UPDATED
+Error Code
+Error Code
+Error Message
+0
+Success
+2001
+User Not Found
+2002
+Email Already Exists
+2003
+Phone Number Already Exists
+2004
+Invalid User Information
+9001
+Internal Server Error
+
+Module: ACCOUNT MANAGEMENT
+API 1: CHANGE PASSWORD
+Output Format
+API Call Category
+HTTP Method
+JSON
+Security
+PUT
+Input Parameter
+Parameter
+Type
+Description
+UserID
+Mandatory
+User identifier
+OldPassword
+Mandatory
+Current password
+NewPassword
+Mandatory
+New password
+Output Parameter
+Parameter
+Type
+Description
+status
+String
+CHANGED
+API 2: CHANGE PIN
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Security
+PUT
+/api/users/change-pin
+Input Parameter
+Parameter
+Type
+Description
+UserID
+Mandatory
+User identifier
+CurrentPIN
+Mandatory
+Current PIN
+NewPIN
+Mandatory
+New PIN
+ConfirmPIN
+Mandatory
+Confirm new PIN
+Output Parameter
+Parameter
+Type
+Description
+status
+String
+PIN_CHANGED
+API 3: CLOSE ACCOUNT
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Account
+DELETE
+/api/users/account
+Input Parameter
+Parameter
+Type
+Description
+UserID
+Mandatory
+User identifier
+Password
+Mandatory
+Account password
+Output Parameter
+Parameter
+Type
+Description
+status
+String
+CLOSED
+-----------------------------------------------------------------------------------------------------------------------
+Module: TRANSFER MONEY
+API 1: TRANSFER MONEY
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Transaction
+POST
+/api/transactions/transfer
+Input Parameter
+Parameter
+Type
+Description
+SenderWalletID
+Mandatory
+Sender wallet identifier
+ReceiverPhoneNumber
+Mandatory
+Receiver phone number
+Amount
+Mandatory
+Transfer amount
+PIN
+Mandatory
+Transaction PIN
+Output Parameter
+Parameter
+Type
+Description
+transactionId
+String
+Transaction identifier
+status
+String
+Transaction status
+amount
+Decimal
+Transfer amount
+Error Code
+Error Code
+Error Message
+0
+Success
+4001
+Wallet Not Found
+4002
+Wallet Frozen
+4003
+Insufficient Balance
+6001
+Receiver Not Found
+6002
+Sender and Receiver Cannot Be Same
+6003
+Transfer Limit Exceeded
+6004
+Invalid PIN
+6005
+Incorrect OTP
+9001
+Internal Server Error
+
+ Module: TOP UP WALLET
+API 1: TOP UP WALLET
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Wallet
+POST
+/api/wallets/topup
+Input Parameter
+Parameter
+Type
+Description
+WalletID
+Mandatory
+Wallet identifier
+Amount
+Mandatory
+Amount to be deposited
+PaymentMethod
+Mandatory
+Bank Account/Card
+Output Parameter
+Parameter
+Type
+Description
+transactionId
+String
+Transaction identifier
+amount
+Decimal
+Deposited amount
+status
+String
+SUCCESS
+Error Code
+Error Code
+Error Message
+0
+Success
+4001
+Wallet Not Found
+4002
+Wallet Frozen
+7001
+Bank Connection Failed
+7002
+Top Up Failed
+7003
+Invalid Payment Method
+7004
+Amount Exceeds Limit
+9001
+Internal Server Error
+
+Module: WALLET BALANCE INQUIRY
+API 1: GET WALLET BALANCE
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Wallet
+GET
+/api/wallets/balance
+Input Parameter
+Parameter
+Type
+Description
+UserID
+Mandatory
+User identifier
+WalletID
+Mandatory
+Wallet identifier
+Output Parameter
+Parameter
+Type
+Description
+walletId
+Long
+Wallet identifier
+balance
+Decimal
+Current wallet balance
+currency
+String
+Currency code
+status
+String
+Wallet status
+Error Code
+Error Code
+Error Message
+0
+Success
+4001
+Wallet Not Found
+4002
+Wallet Frozen
+1006
+Invalid Token
+9001
+Internal Server Error
+Module: TRANSACTION HISTORY
+API 1: GET TRANSACTION HISTORY
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Transaction
+GET
+/api/transactions/history
+Input Parameter
+Parameter
+Type
+Description
+UserID
+Mandatory
+User identifier
+Page
+Optional
+Page number
+Size
+Optional
+Page size
+Output Parameter
+Parameter
+Type
+Description
+transactions
+Array
+List of transactions
+transactionId
+String
+Transaction identifier
+amount
+Decimal
+Transaction amount
+type
+String
+Transaction type
+status
+String
+Transaction status
+transactionDate
+DateTime
+Transaction date
+Error Code
+Error Code
+Error Message
+0
+Success
+2001
+User Not Found
+5001
+Transaction Not Found
+1006
+Invalid Token
+9001
+Internal Server Error
+
+API 2: GET TRANSACTION DETAIL
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Transaction
+GET
+/api/transactions/{transactionId}
+Input Parameter
+Parameter
+Type
+Description
+TransactionID
+Mandatory
+Transaction identifier
+Output Parameter
+Parameter
+Type
+Description
+transactionId
+String
+Transaction identifier
+senderWalletId
+Long
+Sender wallet
+receiverWalletId
+Long
+Receiver wallet
+amount
+Decimal
+Transaction amount
+status
+String
+Transaction status
+createdAt
+DateTime
+Transaction date
+Module: TRANSACTION FILTERING
+API 1: FILTER TRANSACTIONS
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Transaction
+GET
+/api/transactions/filter
+Input Parameter
+Parameter
+Type
+Description
+UserID
+Mandatory
+User identifier
+Type
+Optional
+TRANSFER/TOPUP/WITHDRAW
+Status
+Optional
+SUCCESS/FAILED/PENDING
+FromDate
+Optional
+Start date
+ToDate
+Optional
+End date
+Output Parameter
+Parameter
+Type
+Description
+transactions
+Array
+Filtered transaction list
+totalRecords
+Integer
+Total records found
+Error Code
+Error Code
+Error Message
+0
+Success
+5001
+Transaction Not Found
+1006
+Invalid Token
+9001
+Internal Server Error
+
+Module: EXPORT STATEMENT
+API 1: EXPORT TRANSACTION STATEMENT
+Output Format
+API Call Category
+HTTP Method
+API Request
+File
+Transaction
+GET
+/api/transactions/export
+Input Parameter
+Parameter
+Type
+Description
+UserID
+Mandatory
+User identifier
+FromDate
+Mandatory
+Start date
+ToDate
+Mandatory
+End date
+FileType
+Mandatory
+PDF, CSV, XLSX
+Output Parameter
+Parameter
+Type
+Description
+fileName
+String
+Exported file name
+downloadUrl
+String
+Download URL
+generatedAt
+DateTime
+Export timestamp
+Error Code
+Error Code
+Error Message
+0
+Success
+5001
+Transaction Not Found
+5002
+Export Failed
+1006
+Invalid Token
+9001
+Internal Server Error
+
+Module: DEVICE MANAGEMENT
+API 1: GET REGISTERED DEVICES
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Security
+GET
+/api/devices
+Input Parameter
+Parameter
+Type
+Description
+UserID
+Mandatory
+User identifier
+Output Parameter
+Parameter
+Type
+Description
+deviceId
+Long
+Device identifier
+deviceName
+String
+Device name
+deviceType
+String
+Android, iOS, Web
+lastLogin
+DateTime
+Last login timestamp
+Error Code
+Error Code
+Error Message
+0
+Success
+2001
+User Not Found
+1006
+Invalid Token
+9001
+Internal Server Error
+
+API 2: REMOVE DEVICE
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Security
+DELETE
+/api/devices/{deviceId}
+Input Parameter
+Parameter
+Type
+Description
+UserID
+Mandatory
+User identifier
+DeviceID
+Mandatory
+Device identifier
+Output Parameter
+Parameter
+Type
+Description
+status
+String
+REMOVED
+Error Code
+Error Code
+Error Message
+Error Code
+0
+Success
+0
+2001
+User Not Found
+2001
+9002
+Device Not Found
+9002
+1006
+Invalid Token
+1006
+9001
+Internal Server Error
+9001
+
+Module: AUDIT LOG MANAGEMENT
+API 1: VIEW AUDIT LOGS
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Admin
+GET
+/api/admin/audit-logs
+Input Parameter
+Parameter
+Type
+Description
+AdminID
+Mandatory
+Administrator identifier
+Page
+Optional
+Page number
+Size
+Optional
+Page size
+Output Parameter
+Parameter
+Type
+Description
+logId
+Long
+Audit log identifier
+action
+String
+Action performed
+actor
+String
+User/Admin
+createdAt
+DateTime
+Action timestamp
+Error Code
+Error Code
+Error Message
+0
+Success
+8002
+Permission Denied
+9001
+Internal Server Error
+
+Module: NOTIFICATION MANAGEMENT
+API 1: GET NOTIFICATIONS
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Notification
+GET
+/api/notifications
+Input Parameter
+Parameter
+Type
+Description
+UserID
+Mandatory
+User identifier
+Output Parameter
+Parameter
+Type
+Description
+notificationId
+Long
+Notification identifier
+title
+String
+Notification title
+content
+String
+Notification content
+status
+String
+READ/UNREAD
+
+API 2: MARK AS READ
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Notification
+PUT
+/api/notifications/read
+Input Parameter
+Parameter
+Type
+Description
+NotificationID
+Mandatory
+Notification identifier
+Output Parameter
+Parameter
+Type
+Description
+status
+String
+READ
+
+Module: BANK ACCOUNT MANAGEMENT
+API 1: LINK BANK ACCOUNT
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Bank
+POST
+/api/banks/link
+Input Parameter
+Parameter
+Type
+Description
+UserID
+Mandatory
+User identifier
+BankCode
+Mandatory
+Bank code
+AccountNumber
+Mandatory
+Bank account number
+Output Parameter
+Parameter
+Type
+Description
+bankAccountId
+Long
+Bank account identifier
+status
+String
+LINKED
+
+API 2: UNLINK BANK ACCOUNT
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Bank
+DELETE
+/api/banks/unlink
+
+API 3: GET LINKED BANK ACCOUNTS
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Bank
+GET
+/api/banks
+
+Module: SECURITY MANAGEMENT
+API 1: SEND OTP
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Security
+POST
+/api/security/otp/send
+
+API 2: VERIFY OTP
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Security
+POST
+/api/security/otp/verify
+
+API 3: ENABLE TWO FACTOR AUTHENTICATION
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Security
+POST
+/api/security/2fa/enable
+
+API 4: ENABLE BIOMETRIC AUTHENTICATION
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Security
+POST
+/api/security/biometric/enable
+
+Module: BENEFICIARY MANAGEMENT
+API 1: ADD BENEFICIARY
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Beneficiary
+POST
+/api/beneficiaries
+Input Parameter
+Parameter
+Type
+Description
+UserID
+Mandatory
+User identifier
+BeneficiaryPhone
+Mandatory
+Receiver phone number
+Nickname
+Optional
+Beneficiary nickname
+
+API 2: GET BENEFICIARY LIST
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Beneficiary
+GET
+/api/beneficiaries
+
+API 3: DELETE BENEFICIARY
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Beneficiary
+DELETE
+/api/beneficiaries/{id}
+
+
+
+Module: WITHDRAWAL MANAGEMENT
+API 1: WITHDRAW MONEY
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Withdrawal
+POST
+/api/withdrawals
+Input Parameter
+Parameter
+Type
+Description
+WalletID
+Mandatory
+Wallet identifier
+BankAccountID
+Mandatory
+Linked bank account
+Amount
+Mandatory
+Withdrawal amount
+PIN
+Mandatory
+Transaction PIN
+Output Parameter
+Parameter
+Type
+Description
+transactionId
+String
+Withdrawal transaction identifier
+status
+String
+SUCCESS/FAILED
+amount
+Decimal
+Withdrawal amount
+Error Code
+Error Code
+Error Message
+0
+Success
+4003
+Insufficient Balance
+7005
+Withdrawal Failed
+6004
+Invalid PIN
+9001
+Internal Server Error
+
+Module: FRAUD DETECTION MANAGEMENT
+API 1: GET SUSPICIOUS TRANSACTIONS
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Admin
+GET
+/api/admin/fraud/transactions
+
+API 2: FLAG TRANSACTION
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Admin
+PUT
+/api/admin/fraud/flag
+
+API 3: UNFLAG TRANSACTION
+Output Format
+API Call Category
+HTTP Method
+API Request
+JSON
+Admin
+PUT
+/api/admin/fraud/unflag
+Error Code
+Error Code
+Error Message
+0
+Success
+5001
+Transaction Not Found
+8002
+Permission Denied
+9001
+Internal Server Error
+
+FrontEnd Details
+
+Usecase Diagram
+
+Technology Requirements
+
+Functional validations
+Classes/Objects
+
+
+Non-Functional Requirements
+Design Constraints – Ràng buộc thiết kế
+Logical Database Requirements
+Kết luận
