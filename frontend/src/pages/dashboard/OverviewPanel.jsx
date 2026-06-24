@@ -1,0 +1,219 @@
+import { ArrowDownLeft, ArrowUpRight, QrCode, ArrowsLeftRight, TrendDown, TrendUp, Clock, Wallet } from '@phosphor-icons/react'
+
+function OverviewPanel({
+  wallet,
+  userProfile,
+  transactions,
+  setModalType,
+  setTopupStep,
+  setWithdrawStep,
+  setModalAmount,
+  setTopupPin,
+  setTopupError,
+  setActiveTab
+}) {
+  return (
+    <div className="tab-panel">
+      <div className="wallet-overview-grid">
+        <div className="wallet-card">
+          <div className="wallet-card-header">
+            <span className="wallet-label">Số dư khả dụng</span>
+            <div className="wallet-id">
+              <span>ID: {wallet.walletId}</span>
+            </div>
+          </div>
+          <div className="wallet-balance">
+            <h2>{wallet.balance.toLocaleString()}đ</h2>
+          </div>
+          <div className="wallet-card-footer">
+            <div>
+              <span style={{ fontSize: '0.78rem', display: 'block', opacity: 0.8, marginBottom: '2px' }}>Đăng nhập gần nhất</span>
+              <strong>{wallet.lastLogin}</strong>
+            </div>
+            <div className={`wallet-kyc ${userProfile.kycStatus === 'APPROVED' ? 'verified' : (userProfile.kycStatus === 'PENDING' ? 'pending' : 'rejected')}`}>
+              {userProfile.kycStatus === 'APPROVED' && 'Đã xác thực KYC'}
+              {userProfile.kycStatus === 'PENDING' && 'KYC Đang duyệt'}
+              {userProfile.kycStatus === 'REJECTED' && 'KYC Bị Từ Chối'}
+            </div>
+          </div>
+        </div>
+
+        <div className="quick-actions-panel">
+          <h3>Giao dịch nhanh</h3>
+          <div className="actions-grid">
+            <button className="action-btn" onClick={() => {
+              setModalType('topup')
+              setTopupStep(1)
+              setModalAmount('')
+              setTopupPin('')
+              setTopupError('')
+            }}>
+              <ArrowDownLeft size={22} weight="bold" />
+              Nạp tiền
+            </button>
+            <button className="action-btn" onClick={() => {
+              setModalType('withdraw')
+              setWithdrawStep(1)
+              setModalAmount('')
+              setTopupPin('')
+              setTopupError('')
+            }}>
+              <ArrowUpRight size={22} weight="bold" />
+              Rút tiền
+            </button>
+            <button className="action-btn" onClick={() => setActiveTab('transactions')}>
+              <ArrowsLeftRight size={22} weight="bold" />
+              Chuyển tiền
+            </button>
+            <button className="action-btn" onClick={() => {
+              setModalType('qrscanner')
+            }}>
+              <QrCode size={22} weight="bold" />
+              Quét QR
+            </button>
+            <button className="action-btn" onClick={() => setActiveTab('myqr')}>
+              <QrCode size={22} weight="bold" style={{ color: 'var(--accent)' }} />
+              QR của tôi
+            </button>
+            <button className="action-btn" onClick={() => setActiveTab('bank')}>
+              <Wallet size={22} weight="bold" />
+              Liên kết thẻ
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-icon blue">
+            <Wallet size={24} weight="fill" />
+          </div>
+          <div className="stat-info">
+            <span>Tổng số dư</span>
+            <strong>{wallet.balance.toLocaleString()}đ</strong>
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-icon red">
+            <TrendDown size={24} weight="bold" />
+          </div>
+          <div className="stat-info">
+            <span>Chi tiêu tháng</span>
+            <strong>368.000đ</strong>
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-icon green">
+            <TrendUp size={24} weight="bold" />
+          </div>
+          <div className="stat-info">
+            <span>Thu nhập tháng</span>
+            <strong>2.500.000đ</strong>
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-icon orange">
+            <Clock size={24} weight="bold" />
+          </div>
+          <div className="stat-info">
+            <span>Số giao dịch</span>
+            <strong>{transactions.length}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div className="charts-grid">
+        <div className="chart-card">
+          <h3>Chi tiêu theo nhóm</h3>
+          <div className="donut-chart-wrapper">
+            <svg width="120" height="120" viewBox="0 0 42 42">
+              <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#f1f5f9" strokeWidth="4.2" />
+              <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="var(--accent)" strokeWidth="4.2" strokeDasharray="45 55" strokeDashoffset="25" />
+              <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#f97316" strokeWidth="4.2" strokeDasharray="35 65" strokeDashoffset="80" />
+              <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#ef4444" strokeWidth="4.2" strokeDasharray="20 80" strokeDashoffset="115" />
+            </svg>
+            <div className="donut-legend">
+              <div className="legend-item">
+                <div className="legend-color" style={{ background: 'var(--accent)' }} />
+                <span>Ăn uống & Cà phê (45%)</span>
+              </div>
+              <div className="legend-item">
+                <div className="legend-color" style={{ background: '#f97316' }} />
+                <span>Điện, nước & Sinh hoạt (35%)</span>
+              </div>
+              <div className="legend-item">
+                <div className="legend-color" style={{ background: '#ef4444' }} />
+                <span>Các chi tiêu khác (20%)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="chart-card">
+          <h3>Dòng tiền hàng tháng</h3>
+          <div className="chart-flow-bars">
+            <div className="bar-column">
+              <div className="bar-stack">
+                <div className="bar-value" style={{ height: '70%', background: 'var(--accent)' }} />
+              </div>
+              <span className="bar-label">Th4</span>
+            </div>
+            <div className="bar-column">
+              <div className="bar-stack">
+                <div className="bar-value" style={{ height: '85%', background: 'var(--accent)' }} />
+              </div>
+              <span className="bar-label">Th5</span>
+            </div>
+            <div className="bar-column">
+              <div className="bar-stack">
+                <div className="bar-value" style={{ height: '55%', background: 'var(--accent)' }} />
+              </div>
+              <span className="bar-label">Th6</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="chart-card" style={{ gridColumn: '1 / -1' }}>
+          <h3>Hoạt động ví trong tuần</h3>
+          <div className="chart-activity-timeline">
+            <div className="activity-row">
+              <div className="activity-label-group">
+                <div className="activity-dot" style={{ background: 'var(--accent)' }} />
+                <span>Chuyển tiền nội bộ</span>
+              </div>
+              <div className="activity-progress-bar">
+                <div className="activity-progress-fill" style={{ width: '75%', background: 'var(--accent)' }} />
+              </div>
+              <strong style={{ fontStyle: 'normal' }}>75%</strong>
+            </div>
+            <div className="activity-row">
+              <div className="activity-label-group">
+                <div className="activity-dot" style={{ background: '#22c55e' }} />
+                <span>Nạp tiền ngân hàng</span>
+              </div>
+              <div className="activity-progress-bar">
+                <div className="activity-progress-fill" style={{ width: '50%', background: '#22c55e' }} />
+              </div>
+              <strong style={{ fontStyle: 'normal' }}>50%</strong>
+            </div>
+            <div className="activity-row">
+              <div className="activity-label-group">
+                <div className="activity-dot" style={{ background: '#f97316' }} />
+                <span>Rút tiền về thẻ</span>
+              </div>
+              <div className="activity-progress-bar">
+                <div className="activity-progress-fill" style={{ width: '25%', background: '#f97316' }} />
+              </div>
+              <strong style={{ fontStyle: 'normal' }}>25%</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default OverviewPanel
