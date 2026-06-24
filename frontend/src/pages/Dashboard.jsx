@@ -16,7 +16,15 @@ import {
   Laptop,
   CheckCircle,
   Warning,
-  UploadSimple
+  UploadSimple,
+  Lock,
+  ShieldCheck,
+  Copy,
+  PencilSimple,
+  X,
+  SignOut,
+  CreditCard,
+  DownloadSimple
 } from '@phosphor-icons/react'
 import Sidebar from '../components/Sidebar'
 import ToastAlert from '../components/ToastAlert'
@@ -28,6 +36,10 @@ const calculateRemainingSeconds = (expiryTimeStr) => {
   if (!expiryTimeStr) return 0
   const remaining = Math.ceil((parseInt(expiryTimeStr, 10) - Date.now()) / 1000)
   return remaining > 0 ? remaining : 0
+}
+
+const generateRandomId = (prefix = 'TX') => {
+  return `${prefix}-${Math.floor(1000 + Math.random() * 9000)}`
 }
 
 function Dashboard() {
@@ -57,7 +69,11 @@ function Dashboard() {
     phone: '0987654321',
     citizenId: '001096008686',
     kycStatus: 'APPROVED', // APPROVED, PENDING, REJECTED
-    status: 'ACTIVE'
+    status: 'ACTIVE',
+    dob: '1996-08-06',
+    gender: 'Nam',
+    address: '123 Đường Láng, Quận Đống Đa, Hà Nội',
+    vipLevel: 'Gold'
   })
 
   const [wallet, setWallet] = useState({
@@ -79,6 +95,7 @@ function Dashboard() {
   const [filterType, setFilterType] = useState('ALL')
   const [filterStatus, setFilterStatus] = useState('ALL')
   const [filterDate, setFilterDate] = useState('ALL')
+  const [filterSearch, setFilterSearch] = useState('')
 
   // Transfer Form State
   const [transferPhone, setTransferPhone] = useState('')
@@ -134,11 +151,44 @@ function Dashboard() {
   const [topupError, setTopupError] = useState('')
   const [isTopupLoading, setIsTopupLoading] = useState(false)
 
+  // Withdraw PIN States
+  const [withdrawStep, setWithdrawStep] = useState(1) // 1: input amount, 2: verify PIN
+  const [withdrawPin, setWithdrawPin] = useState('')
+  const [withdrawError, setWithdrawError] = useState('')
+  const [isWithdrawLoading, setIsWithdrawLoading] = useState(false)
+
   // Transfer Confirmation PIN States
   const [showTransferConfirm, setShowTransferConfirm] = useState(false)
   const [transferPin, setTransferPin] = useState('')
   const [transferConfirmError, setTransferConfirmError] = useState('')
   const [isTransferConfirmLoading, setIsTransferConfirmLoading] = useState(false)
+
+  // Profile Settings States
+  const [isEditMode, setIsEditMode] = useState(false)
+  const [editProfile, setEditProfile] = useState({
+    fullName: 'Nguyễn Bá Việt',
+    email: 'vietnb@vtpay.local',
+    phone: '0987654321',
+    citizenId: '001096008686',
+    dob: '1996-08-06',
+    gender: 'Nam',
+    address: '123 Đường Láng, Quận Đống Đa, Hà Nội'
+  })
+  
+  // Transaction Limits
+  const [limitPerTransaction] = useState(50000000)
+  const [limitPerDay] = useState(100000000)
+
+  // Security Toggles
+  const [securityToggles, setSecurityToggles] = useState({
+    smsOtp: true,
+    emailOtp: false,
+    biometrics: true
+  })
+
+  // QR Scanner States
+  const [qrFile, setQrFile] = useState(null)
+  const [scanSuccess, setScanSuccess] = useState(false)
 
   // Trigger brief toast alert
   const showToast = (message, type = 'success') => {
@@ -167,13 +217,27 @@ function Dashboard() {
         const profileData = await profileRes.json()
         
         if (profileRes.ok && !profileData.errorCode) {
-          setUserProfile({
+          const fetchedProfile = {
             fullName: profileData.fullName || 'Nguyễn Bá Việt',
             email: profileData.email || 'vietnb@vtpay.local',
             phone: profileData.phone || '0987654321',
             citizenId: profileData.citizenId || '001096008686',
             kycStatus: profileData.kycStatus || 'APPROVED',
-            status: 'ACTIVE'
+            status: 'ACTIVE',
+            dob: profileData.dob || '1996-08-06',
+            gender: profileData.gender || 'Nam',
+            address: profileData.address || '123 Đường Láng, Quận Đống Đa, Hà Nội',
+            vipLevel: profileData.vipLevel || 'Gold'
+          }
+          setUserProfile(fetchedProfile)
+          setEditProfile({
+            fullName: fetchedProfile.fullName,
+            email: fetchedProfile.email,
+            phone: fetchedProfile.phone,
+            citizenId: fetchedProfile.citizenId,
+            dob: fetchedProfile.dob,
+            gender: fetchedProfile.gender,
+            address: fetchedProfile.address
           })
           setIsLive(true)
         }
@@ -201,7 +265,7 @@ function Dashboard() {
         
         if (transRes.ok && !transData.errorCode && Array.isArray(transData.transactions)) {
           setTransactions(transData.transactions.map(t => ({
-            id: t.transactionId || `TX-${Math.floor(1000 + Math.random() * 9000)}`,
+            id: t.transactionId || generateRandomId('TX'),
             recipient: t.type === 'TOPUP' ? 'Nạp tiền ngân hàng' : (t.type === 'WITHDRAW' ? 'Rút tiền ngân hàng' : t.recipientPhone || 'Ví VT Pay'),
             amount: t.type === 'TOPUP' ? t.amount : -t.amount,
             type: t.type,
@@ -231,11 +295,17 @@ function Dashboard() {
         setActiveTab('transactions')
       } else if (e.altKey && e.key === '3') {
         e.preventDefault()
-        setActiveTab('bank')
+        setActiveTab('myqr')
       } else if (e.altKey && e.key === '4') {
         e.preventDefault()
-        setActiveTab('kyc')
+        setActiveTab('history')
       } else if (e.altKey && e.key === '5') {
+        e.preventDefault()
+        setActiveTab('bank')
+      } else if (e.altKey && e.key === '6') {
+        e.preventDefault()
+        setActiveTab('kyc')
+      } else if (e.altKey && e.key === '7') {
         e.preventDefault()
         setActiveTab('profile')
       }
@@ -351,7 +421,7 @@ function Dashboard() {
       }
 
       const newBank = {
-        id: `${selectedBank}-${Math.floor(1000 + Math.random() * 9000)}`,
+        id: generateRandomId(selectedBank),
         bankName: bankNameMap[selectedBank] || 'Ngân hàng',
         logo: selectedBank,
         accountNumber: bankAccountNo,
@@ -424,6 +494,170 @@ function Dashboard() {
     }, 500)
   }
 
+  // Handle Save Profile Info Changes
+  const handleSaveProfile = (e) => {
+    e.preventDefault()
+    if (!editProfile.email || !editProfile.email.includes('@')) {
+      showToast('Email không hợp lệ.', 'error')
+      return
+    }
+    if (!editProfile.address.trim()) {
+      showToast('Địa chỉ không được để trống.', 'error')
+      return
+    }
+
+    setUserProfile(prev => ({
+      ...prev,
+      email: editProfile.email,
+      dob: editProfile.dob,
+      gender: editProfile.gender,
+      address: editProfile.address
+    }))
+    setIsEditMode(false)
+    showToast('Cập nhật thông tin cá nhân thành công!')
+  }
+
+  // Handle Cancel Profile Edit Mode
+  const handleCancelProfileEdit = () => {
+    setEditProfile({
+      fullName: userProfile.fullName,
+      email: userProfile.email,
+      phone: userProfile.phone,
+      citizenId: userProfile.citizenId,
+      dob: userProfile.dob || '1996-08-06',
+      gender: userProfile.gender || 'Nam',
+      address: userProfile.address || '123 Đường Láng, Quận Đống Đa, Hà Nội'
+    })
+    setIsEditMode(false)
+  }
+
+  // Handle Download QR Card Image
+  const handleDownloadQR = () => {
+    const canvas = document.createElement('canvas')
+    canvas.width = 400
+    canvas.height = 550
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    // 1. Draw background gradient
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height)
+    gradient.addColorStop(0, '#006aff')
+    gradient.addColorStop(1, '#0c4a6e')
+    ctx.fillStyle = gradient
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+    // 2. Draw card container (white background card in center)
+    const cardX = 30
+    const cardY = 80
+    const cardW = 340
+    const cardH = 400
+    const radius = 20
+    ctx.fillStyle = '#ffffff'
+    ctx.beginPath()
+    ctx.roundRect(cardX, cardY, cardW, cardH, radius)
+    ctx.fill()
+
+    // 3. Draw header text
+    ctx.fillStyle = '#ffffff'
+    ctx.font = 'bold 22px system-ui, -apple-system, sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText('VT PAY', canvas.width / 2, 45)
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)'
+    ctx.font = '13px system-ui, -apple-system, sans-serif'
+    ctx.fillText('QUÉT MÃ ĐỂ NHẬN TIỀN', canvas.width / 2, 65)
+
+    // 4. Load and draw QR code
+    const qrImg = new Image()
+    qrImg.crossOrigin = 'anonymous'
+    qrImg.src = '/vtpay_qr_code.jpg'
+    qrImg.onload = () => {
+      // Draw QR image in center of white card
+      const qrSize = 220
+      const qrX = canvas.width / 2 - qrSize / 2
+      const qrY = 110
+      ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize)
+
+      // 5. Draw user details inside card
+      ctx.fillStyle = '#0f172a'
+      ctx.font = 'bold 18px system-ui, -apple-system, sans-serif'
+      ctx.fillText(userProfile.fullName.toUpperCase(), canvas.width / 2, 370)
+
+      ctx.fillStyle = '#64748b'
+      ctx.font = '600 14px system-ui, -apple-system, sans-serif'
+      ctx.fillText(`Số tài khoản ví: ${wallet.walletId}`, canvas.width / 2, 395)
+
+      // 6. Draw bank link info
+      ctx.fillStyle = '#1e293b'
+      ctx.font = 'italic 12px system-ui, -apple-system, sans-serif'
+      ctx.fillText('Chuyển tiền nhanh liên ngân hàng 24/7', canvas.width / 2, 440)
+
+      // 7. Draw bottom watermark info
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.6)'
+      ctx.font = 'bold 11px system-ui, -apple-system, sans-serif'
+      ctx.fillText('www.vtpay.vn', canvas.width / 2, canvas.height - 25)
+
+      // 8. Trigger download
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.9)
+      const link = document.createElement('a')
+      link.download = `VTPay_QR_${wallet.walletId}.jpg`
+      link.href = dataUrl
+      link.click()
+    }
+    qrImg.onerror = () => {
+      // Fallback if image fails to load
+      ctx.fillStyle = '#f1f5f9'
+      ctx.fillRect(90, 110, 220, 220)
+      ctx.fillStyle = '#0f172a'
+      ctx.font = 'bold 14px system-ui, -apple-system, sans-serif'
+      ctx.fillText('[Mã QR Nhận tiền]', canvas.width / 2, 220)
+
+      ctx.fillStyle = '#0f172a'
+      ctx.font = 'bold 18px system-ui, -apple-system, sans-serif'
+      ctx.fillText(userProfile.fullName.toUpperCase(), canvas.width / 2, 370)
+
+      ctx.fillStyle = '#64748b'
+      ctx.font = '600 14px system-ui, -apple-system, sans-serif'
+      ctx.fillText(`Số tài khoản ví: ${wallet.walletId}`, canvas.width / 2, 395)
+
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.9)
+      const link = document.createElement('a')
+      link.download = `VTPay_QR_${wallet.walletId}.jpg`
+      link.href = dataUrl
+      link.click()
+    }
+  }
+
+  // Handle Export Transaction History to CSV
+  const handleExportCSV = () => {
+    // Generate CSV headers and rows
+    const headers = ['Ma giao dich', 'Nguoi nhan/Nguon', 'Loai giao dich', 'Thoi gian', 'Trang thai', 'So tien (dong)']
+    const rows = filteredTransactions.map(tx => [
+      tx.id,
+      tx.recipient,
+      tx.type === 'TRANSFER' ? 'Chuyen tien' : (tx.type === 'TOPUP' ? 'Nap vi' : 'Rut vi'),
+      tx.date,
+      tx.status === 'SUCCESS' ? 'Thanh cong' : (tx.status === 'PENDING' ? 'Cho xu ly' : 'That bai'),
+      tx.amount
+    ])
+
+    // Convert data to CSV content (UTF-8 BOM for Microsoft Excel character support)
+    const csvContent = "\uFEFF"
+      + [headers.join(','), ...rows.map(e => e.map(val => `"${val}"`).join(','))].join('\n')
+
+    // Create download link
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.setAttribute('href', url)
+    link.setAttribute('download', `VTPay_GD_${wallet.walletId}_${new Date().toISOString().substring(0, 10)}.csv`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    showToast('Xuat file bao cao sao ke CSV thanh cong!')
+  }
+
   // Handle Quick Transfer Submission (Triggers PIN Confirmation Modal)
   const handleTransfer = (e) => {
     e.preventDefault()
@@ -437,35 +671,35 @@ function Dashboard() {
       setTransferError('Số điện thoại không đúng định dạng.')
       return
     }
-    if (!transferAmount || isNaN(transferAmount) || parseFloat(transferAmount) <= 0) {
+    const amountVal = parseNumberFromCommas(transferAmount)
+    if (!transferAmount || amountVal <= 0) {
       setTransferError('Vui lòng nhập số tiền hợp lệ.')
       return
     }
     
-    const amountVal = parseFloat(transferAmount)
     if (amountVal > wallet.balance) {
       setTransferError('Số dư khả dụng trong ví không đủ để thực hiện giao dịch.')
       return
     }
-
-    // Input checks passed, open confirmation modal
-    setShowTransferConfirm(true)
-    setTransferPin('')
-    setTransferConfirmError('')
-  }
-
-  // Handle Verify Transfer PIN Submission
-  const handleVerifyTransferPin = async (e) => {
-    e.preventDefault()
-    setTransferConfirmError('')
-
-    if (!transferPin || transferPin.length !== 6 || isNaN(transferPin)) {
-      setTransferConfirmError('Mã PIN giao dịch phải gồm 6 chữ số.')
-      return
-    }
-
-    setIsTransferConfirmLoading(true)
-    const amountVal = parseFloat(transferAmount)
+ 
+     // Input checks passed, open confirmation modal
+     setShowTransferConfirm(true)
+     setTransferPin('')
+     setTransferConfirmError('')
+   }
+ 
+   // Handle Verify Transfer PIN Submission
+   const handleVerifyTransferPin = async (e) => {
+     e.preventDefault()
+     setTransferConfirmError('')
+ 
+     if (!transferPin || transferPin.length !== 6 || isNaN(transferPin)) {
+       setTransferConfirmError('Mã PIN giao dịch phải gồm 6 chữ số.')
+       return
+     }
+ 
+     setIsTransferConfirmLoading(true)
+     const amountVal = parseNumberFromCommas(transferAmount)
 
     try {
       const token = localStorage.getItem('accessToken')
@@ -496,7 +730,7 @@ function Dashboard() {
 
       // Successful Transfer
       const newTx = {
-        id: `TX-${Math.floor(1000 + Math.random() * 9000)}`,
+        id: generateRandomId('TX'),
         recipient: `Số điện thoại ${transferPhone}`,
         amount: -amountVal,
         type: 'TRANSFER',
@@ -529,7 +763,8 @@ function Dashboard() {
     e.preventDefault()
     setTopupError('')
 
-    if (!modalAmount || isNaN(modalAmount) || parseFloat(modalAmount) <= 0) {
+    const amountVal = parseNumberFromCommas(modalAmount)
+    if (!modalAmount || amountVal <= 0) {
       setTopupError('Vui lòng nhập số tiền nạp hợp lệ.')
       return
     }
@@ -551,10 +786,10 @@ function Dashboard() {
     setTimeout(() => {
       setIsTopupLoading(false)
 
-      const amountVal = parseFloat(modalAmount)
+      const amountVal = parseNumberFromCommas(modalAmount)
       setWallet(prev => ({ ...prev, balance: prev.balance + amountVal }))
       const newTx = {
-        id: `TX-${Math.floor(1000 + Math.random() * 9000)}`,
+        id: generateRandomId('TX'),
         recipient: 'Nạp tiền Vietcombank',
         amount: amountVal,
         type: 'TOPUP',
@@ -571,24 +806,48 @@ function Dashboard() {
     }, 1500)
   }
 
-  // Handle Quick Deposit / Withdrawal Modal actions
-  const handleModalActionSubmit = (e) => {
+  // Handle Withdraw 2-Step verification
+  const handleWithdrawAmountSubmit = (e) => {
     e.preventDefault()
-    if (!modalAmount || isNaN(modalAmount) || parseFloat(modalAmount) <= 0) {
-      alert('Vui lòng nhập số tiền hợp lệ.')
+    setWithdrawError('')
+
+    const amountVal = parseNumberFromCommas(modalAmount)
+    if (!modalAmount || amountVal <= 0) {
+      setWithdrawError('Vui lòng nhập số tiền rút hợp lệ.')
       return
     }
 
-    const amountVal = parseFloat(modalAmount)
+    if (amountVal > wallet.balance) {
+      setWithdrawError('Số dư tài khoản ví không đủ.')
+      return
+    }
 
-    if (modalType === 'withdraw') {
+    setWithdrawStep(2)
+    setWithdrawPin('')
+  }
+
+  const handleVerifyWithdrawPin = (e) => {
+    e.preventDefault()
+    setWithdrawError('')
+
+    if (!withdrawPin || withdrawPin.length !== 6 || isNaN(withdrawPin)) {
+      setWithdrawError('Mã PIN giao dịch phải gồm 6 chữ số.')
+      return
+    }
+
+    setIsWithdrawLoading(true)
+    setTimeout(() => {
+      setIsWithdrawLoading(false)
+
+      const amountVal = parseNumberFromCommas(modalAmount)
       if (amountVal > wallet.balance) {
-        alert('Số dư tài khoản ví không đủ.')
+        setWithdrawError('Số dư tài khoản ví không đủ.')
         return
       }
+
       setWallet(prev => ({ ...prev, balance: prev.balance - amountVal }))
       const newTx = {
-        id: `TX-${Math.floor(1000 + Math.random() * 9000)}`,
+        id: generateRandomId('TX'),
         recipient: 'Rút tiền ATM/Bank',
         amount: -amountVal,
         type: 'WITHDRAW',
@@ -597,10 +856,12 @@ function Dashboard() {
       }
       setTransactions(prev => [newTx, ...prev])
       showToast(`Rút thành công ${amountVal.toLocaleString()}đ về tài khoản!`)
-    }
 
-    setModalAmount('')
-    setModalType(null)
+      setModalAmount('')
+      setWithdrawPin('')
+      setModalType(null)
+      setWithdrawStep(1)
+    }, 1500)
   }
 
   // Handle mock Document KYC submission
@@ -674,6 +935,20 @@ function Dashboard() {
       if (filterDate === 'WEEK' && diffDays > 7) return false
       if (filterDate === 'MONTH' && diffDays > 30) return false
     }
+
+    if (filterSearch.trim() !== '') {
+      const q = filterSearch.toLowerCase().trim()
+      const matchesId = t.id.toLowerCase().includes(q)
+      const matchesRecipient = t.recipient.toLowerCase().includes(q)
+      const matchesAmount = String(Math.abs(t.amount)).includes(q)
+      const matchesType = (
+        t.type === 'TRANSFER' ? 'chuyển tiền transfer' :
+        t.type === 'TOPUP' ? 'nạp ví topup' :
+        'rút ví withdraw'
+      ).includes(q)
+      
+      if (!matchesId && !matchesRecipient && !matchesAmount && !matchesType) return false
+    }
     
     return true
   })
@@ -681,6 +956,19 @@ function Dashboard() {
   // Format Helper for currency
   const formatCurrency = (val) => {
     return Math.abs(val).toLocaleString() + wallet.currency
+  }
+
+  const formatNumberWithCommas = (val) => {
+    if (val === undefined || val === null) return ''
+    const clean = String(val).replace(/\D/g, '')
+    if (!clean) return ''
+    return parseInt(clean, 10).toLocaleString('en-US')
+  }
+
+  const parseNumberFromCommas = (val) => {
+    if (!val) return 0
+    const clean = String(val).replace(/,/g, '')
+    return parseFloat(clean) || 0
   }
 
   if (loading) {
@@ -710,6 +998,8 @@ function Dashboard() {
             <h1>
               {activeTab === 'overview' && 'Tổng quan tài chính'}
               {activeTab === 'transactions' && 'Giao dịch chuyển tiền'}
+              {activeTab === 'myqr' && 'Mã QR nhận tiền'}
+              {activeTab === 'history' && 'Lịch sử giao dịch ví'}
               {activeTab === 'bank' && 'Liên kết tài khoản ngân hàng'}
               {activeTab === 'kyc' && 'Thông tin xác thực danh tính'}
               {activeTab === 'profile' && 'Hồ sơ bảo mật'}
@@ -725,7 +1015,7 @@ function Dashboard() {
               </button>
               
               {showNotifications && (
-                <div style={{ position: 'absolute', top: '50px', right: 0, width: '320px', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: '16px', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', zIndex: 10, padding: '16px' }}>
+                <div className="header-notifications-dropdown">
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px solid var(--line)', paddingBottom: '8px' }}>
                     <strong style={{ fontSize: '0.9rem' }}>Thông báo mới nhất</strong>
                     <button style={{ border: 'none', background: 'none', color: 'var(--accent)', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }} onClick={() => {
@@ -808,17 +1098,35 @@ function Dashboard() {
                       <ArrowDownLeft size={22} weight="bold" />
                       Nạp tiền
                     </button>
-                    <button className="action-btn" onClick={() => setModalType('withdraw')}>
+                    <button className="action-btn" onClick={() => {
+                      setModalType('withdraw')
+                      setWithdrawStep(1)
+                      setModalAmount('')
+                      setWithdrawPin('')
+                      setWithdrawError('')
+                    }}>
                       <ArrowUpRight size={22} weight="bold" />
                       Rút tiền
                     </button>
                     <button className="action-btn" onClick={() => setActiveTab('transactions')}>
                       <ArrowsLeftRight size={22} weight="bold" />
-                      Chuyển khoản
+                      Chuyển tiền
                     </button>
-                    <button className="action-btn" onClick={() => alert('Quét QR: Tính năng giả lập quét camera trên thiết bị di động.')}>
+                    <button className="action-btn" onClick={() => {
+                      setModalType('qrscanner')
+                      setQrFile(null)
+                      setScanSuccess(false)
+                    }}>
                       <QrCode size={22} weight="bold" />
                       Quét QR
+                    </button>
+                    <button className="action-btn" onClick={() => setActiveTab('myqr')}>
+                      <QrCode size={22} weight="bold" style={{ color: 'var(--accent)' }} />
+                      QR của tôi
+                    </button>
+                    <button className="action-btn" onClick={() => setActiveTab('bank')}>
+                      <CreditCard size={22} weight="bold" />
+                      Liên kết thẻ
                     </button>
                   </div>
                 </div>
@@ -974,7 +1282,12 @@ function Dashboard() {
               <div className="transfer-grid">
                 {/* Money Transfer Form (Section 4) */}
                 <div className="transfer-card">
-                  <h3>Chuyển tiền nhanh</h3>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
+                    <h3 style={{ margin: 0 }}>Chuyển tiền nhanh</h3>
+                    <span style={{ fontSize: '0.88rem', color: 'var(--muted)', fontWeight: 550 }}>
+                      Số dư khả dụng: <strong style={{ color: 'var(--accent)' }}>{wallet.balance.toLocaleString()}đ</strong>
+                    </span>
+                  </div>
                   <form className="auth-form" onSubmit={handleTransfer}>
                     {transferError && <div className="error-message" style={{ fontSize: '0.9rem' }}><Warning size={16} /> {transferError}</div>}
 
@@ -992,10 +1305,10 @@ function Dashboard() {
                     <FormInput
                       label="Số tiền chuyển (đ)"
                       id="transAmt"
-                      type="number"
-                      placeholder="Ví dụ: 50000"
+                      type="text"
+                      placeholder="Ví dụ: 50,000"
                       value={transferAmount}
-                      onChange={(e) => setTransferAmount(e.target.value)}
+                      onChange={(e) => setTransferAmount(formatNumberWithCommas(e.target.value))}
                       disabled={transferLoading}
                       icon={Wallet}
                     />
@@ -1029,11 +1342,11 @@ function Dashboard() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.9rem' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
                         <span>Hạn mức tối đa/giao dịch:</span>
-                        <strong>50.000.000đ</strong>
+                        <strong>{limitPerTransaction.toLocaleString()}đ</strong>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
                         <span>Hạn mức tối đa/ngày:</span>
-                        <strong>100.000.000đ</strong>
+                        <strong>{limitPerDay.toLocaleString()}đ</strong>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <span>Phí chuyển tiền nội bộ:</span>
@@ -1143,6 +1456,245 @@ function Dashboard() {
             </div>
           )}
 
+          {/* TAB: MY QR */}
+          {activeTab === 'myqr' && (
+            <div className="tab-panel">
+              <div style={{ maxWidth: '440px', margin: '0 auto', width: '100%' }}>
+                <div 
+                  className="profile-card" 
+                  style={{ 
+                    padding: '30px', 
+                    borderRadius: '24px', 
+                    boxShadow: '0 20px 40px rgba(0, 106, 255, 0.08)',
+                    background: 'var(--surface)',
+                    border: '1px solid var(--line)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center'
+                  }}
+                >
+                  <h3 style={{ margin: '0 0 8px', fontSize: '1.25rem', fontWeight: 700, color: 'var(--ink)' }}>QR Nhận tiền của tôi</h3>
+                  <p style={{ color: 'var(--muted)', fontSize: '0.82rem', margin: '0 0 24px', textAlign: 'center', lineHeight: 1.4 }}>
+                    Đưa mã này cho người chuyển để nhận tiền nhanh liên ngân hàng 24/7 qua ví VT Pay.
+                  </p>
+
+                  {/* QR Card Container */}
+                  <div 
+                    id="myqr-card-display"
+                    style={{
+                      background: 'linear-gradient(135deg, var(--accent) 0%, #0c4a6e 100%)',
+                      borderRadius: '20px',
+                      padding: '24px',
+                      color: '#ffffff',
+                      width: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      boxShadow: '0 15px 30px rgba(0, 106, 255, 0.15)',
+                      position: 'relative',
+                      overflow: 'hidden'
+                    }}
+                  >
+                    <div style={{ position: 'absolute', top: '-40px', right: '-40px', width: '120px', height: '120px', background: 'radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)', borderRadius: '50%' }} />
+                    
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', zIndex: 1 }}>
+                      <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(255, 255, 255, 0.2)', display: 'grid', placeItems: 'center', fontWeight: 'bold', fontSize: '0.8rem' }}>VT</div>
+                      <strong style={{ fontSize: '1.05rem', letterSpacing: '0.5px' }}>VT Pay Receive</strong>
+                    </div>
+
+                    <div style={{ background: '#ffffff', borderRadius: '16px', padding: '16px', display: 'grid', placeItems: 'center', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', zIndex: 1, width: '220px', height: '220px', margin: '0 auto 20px' }}>
+                      <img 
+                        src="/vtpay_qr_code.jpg" 
+                        alt="Mã QR Nhận tiền VT Pay" 
+                        style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '8px' }} 
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1, textAlign: 'center' }}>
+                      <strong style={{ fontSize: '1.15rem', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '4px' }}>{userProfile.fullName}</strong>
+                      <span style={{ fontSize: '0.85rem', opacity: 0.85, fontFamily: 'monospace' }}>Ví VT Pay: {wallet.walletId}</span>
+                    </div>
+                  </div>
+
+                  <button
+                    className="auth-btn"
+                    style={{ width: '100%', minHeight: '46px', marginTop: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
+                    onClick={handleDownloadQR}
+                  >
+                    <DownloadSimple size={20} weight="bold" />
+                    Tải hình ảnh mã QR
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: HISTORY */}
+          {activeTab === 'history' && (
+            <div className="tab-panel">
+              {/* Summary Cards Row */}
+              <div className="stats-grid" style={{ marginBottom: '24px' }}>
+                <div className="stat-card">
+                  <div className="stat-icon blue">
+                    <Wallet size={24} weight="fill" />
+                  </div>
+                  <div className="stat-info">
+                    <span>Số dư hiện tại</span>
+                    <strong>{wallet.balance.toLocaleString()}đ</strong>
+                  </div>
+                </div>
+
+                <div className="stat-card">
+                  <div className="stat-icon green">
+                    <TrendUp size={24} weight="bold" />
+                  </div>
+                  <div className="stat-info">
+                    <span>Tổng nhận (Lọc)</span>
+                    <strong>{filteredTransactions.filter(tx => tx.amount > 0 && tx.status === 'SUCCESS').reduce((sum, tx) => sum + tx.amount, 0).toLocaleString()}đ</strong>
+                  </div>
+                </div>
+
+                <div className="stat-card">
+                  <div className="stat-icon red">
+                    <TrendDown size={24} weight="bold" />
+                  </div>
+                  <div className="stat-info">
+                    <span>Tổng chi (Lọc)</span>
+                    <strong>{filteredTransactions.filter(tx => tx.amount < 0 && tx.status === 'SUCCESS').reduce((sum, tx) => sum + Math.abs(tx.amount), 0).toLocaleString()}đ</strong>
+                  </div>
+                </div>
+
+                <div className="stat-card">
+                  <div className="stat-icon orange">
+                    <Clock size={24} weight="bold" />
+                  </div>
+                  <div className="stat-info">
+                    <span>Số giao dịch (Lọc)</span>
+                    <strong>{filteredTransactions.length}</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Transactions List & Filters */}
+              <div className="recent-transactions-card">
+                <div className="section-header" style={{ display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'stretch' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                    <h2 style={{ margin: 0 }}>Lịch sử giao dịch ví</h2>
+                    <button
+                      className="auth-btn"
+                      style={{ minHeight: '38px', padding: '0 16px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}
+                      onClick={handleExportCSV}
+                    >
+                      <DownloadSimple size={18} weight="bold" />
+                      Xuất file CSV
+                    </button>
+                  </div>
+
+                  <div className="filters-row" style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
+                    <input
+                      type="text"
+                      className="filter-search-input"
+                      placeholder="Tìm kiếm theo mã GD, người nhận, số tiền..."
+                      value={filterSearch}
+                      onChange={(e) => setFilterSearch(e.target.value)}
+                    />
+
+                    <select
+                      className="filter-select"
+                      value={filterDate}
+                      onChange={(e) => setFilterDate(e.target.value)}
+                    >
+                      <option value="ALL">Tất cả thời gian</option>
+                      <option value="TODAY">Hôm nay</option>
+                      <option value="WEEK">7 ngày gần đây</option>
+                      <option value="MONTH">Tháng này</option>
+                    </select>
+
+                    <select
+                      className="filter-select"
+                      value={filterType}
+                      onChange={(e) => setFilterType(e.target.value)}
+                    >
+                      <option value="ALL">Mọi loại giao dịch</option>
+                      <option value="TRANSFER">Chuyển khoản</option>
+                      <option value="TOPUP">Nạp tiền</option>
+                      <option value="WITHDRAW">Rút tiền</option>
+                    </select>
+
+                    <select
+                      className="filter-select"
+                      value={filterStatus}
+                      onChange={(e) => setFilterStatus(e.target.value)}
+                    >
+                      <option value="ALL">Tất cả trạng thái</option>
+                      <option value="SUCCESS">Thành công</option>
+                      <option value="PENDING">Chờ xử lý</option>
+                      <option value="FAILED">Thất bại</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="transaction-table-wrapper">
+                  <table className="transaction-table">
+                    <thead>
+                      <tr>
+                        <th>Mã GD</th>
+                        <th>Người nhận / Nguồn</th>
+                        <th>Loại</th>
+                        <th>Thời gian</th>
+                        <th>Trạng thái</th>
+                        <th>Số tiền</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredTransactions.length === 0 ? (
+                        <tr>
+                          <td colSpan="6" className="no-data-row">
+                            Không có giao dịch nào khớp với bộ lọc tìm kiếm.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredTransactions.map(tx => (
+                          <tr key={tx.id}>
+                            <td style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: 'var(--muted)' }}>{tx.id}</td>
+                            <td>
+                              <div className="recipient-cell">
+                                <div className="recipient-avatar">
+                                  {tx.recipient.substring(0, 1).toUpperCase()}
+                                </div>
+                                {tx.recipient}
+                              </div>
+                            </td>
+                            <td>
+                              <span style={{ fontSize: '0.85rem', fontWeight: 650, color: 'var(--muted)' }}>
+                                {tx.type === 'TRANSFER' && 'Chuyển tiền'}
+                                {tx.type === 'TOPUP' && 'Nạp ví'}
+                                {tx.type === 'WITHDRAW' && 'Rút ví'}
+                              </span>
+                            </td>
+                            <td style={{ color: 'var(--muted)', fontSize: '0.88rem' }}>{tx.date}</td>
+                            <td>
+                              <span className={`status-badge ${tx.status === 'SUCCESS' ? 'success' : (tx.status === 'PENDING' ? 'pending' : 'failed')}`}>
+                                {tx.status === 'SUCCESS' && 'Thành công'}
+                                {tx.status === 'PENDING' && 'Chờ xử lý'}
+                                {tx.status === 'FAILED' && 'Thất bại'}
+                              </span>
+                            </td>
+                            <td>
+                              <span className={`transaction-amount ${tx.amount > 0 ? 'positive' : 'negative'}`}>
+                                {tx.amount > 0 ? '+' : ''}{formatCurrency(tx.amount)}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* TAB 3: LINK BANK */}
           {activeTab === 'bank' && (
             <div className="tab-panel">
@@ -1165,7 +1717,7 @@ function Dashboard() {
                       <form className="auth-form" onSubmit={handleLinkBankSubmit}>
                         <div className="input-group">
                           <label className="input-label">Chọn ngân hàng đối tác</label>
-                          <div className="bank-selection-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px', marginBottom: '16px' }}>
+                          <div className="bank-selection-grid">
                             {[
                               { code: 'VCB', name: 'Vietcombank', color: '#10b981' },
                               { code: 'TCB', name: 'Techcombank', color: '#ef4444' },
@@ -1514,110 +2066,321 @@ function Dashboard() {
           {/* TAB 4: SECURITY & PROFILE (Sections 7 & 8) */}
           {activeTab === 'profile' && (
             <div className="tab-panel">
-              {/* Profile Details Display (Section 8) */}
-              <div className="profile-card">
-                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem', fontWeight: 700, margin: '0 0 20px' }}>
-                  Thông tin cá nhân chủ ví
-                </h3>
+              <div className="profile-container-grid">
                 
-                <div className="profile-info-grid">
-                  <div className="profile-field">
-                    <label>Họ và tên</label>
-                    <span>{userProfile.fullName}</span>
+                {/* 1. Cover Profile Header widget */}
+                <div className="profile-header-cover">
+                  <div className="profile-header-details">
+                    <div className="profile-header-avatar">
+                      {userProfile.fullName.split(' ').pop().substring(0, 2).toUpperCase()}
+                    </div>
+                    <div className="profile-header-info">
+                      <h2>{userProfile.fullName}</h2>
+                      <div className="profile-badge-row">
+                        <span className="badge-kyc-tier">
+                          <ShieldCheck size={14} weight="bold" />
+                          Đã xác thực danh tính - Cấp 2
+                        </span>
+                        <span className="badge-vip-tier">
+                          Thành viên {userProfile.vipLevel === 'Gold' ? 'Vàng' : userProfile.vipLevel}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                   
-                  <div className="profile-field">
-                    <label>Số điện thoại</label>
-                    <span>{userProfile.phone}</span>
-                  </div>
-
-                  <div className="profile-field">
-                    <label>Địa chỉ Email</label>
-                    <span>{userProfile.email}</span>
-                  </div>
-
-                  <div className="profile-field">
-                    <label>Số CCCD</label>
-                    <span>{userProfile.citizenId}</span>
-                  </div>
-
-                  <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
-                    <label>Trạng thái tài khoản</label>
-                    <div className="status-pill active">
-                      {userProfile.status === 'ACTIVE' ? 'Đang hoạt động' : 'Tạm khóa'}
+                  <div className="profile-wallet-copy-box">
+                    <span>Số tài khoản ví VT Pay</span>
+                    <div className="copy-row-action">
+                      <strong>{wallet.walletId}</strong>
+                      <button 
+                        type="button"
+                        className="copy-icon-btn" 
+                        onClick={() => {
+                          navigator.clipboard.writeText(wallet.walletId.toString());
+                          showToast('Đã copy số tài khoản ví vào bộ nhớ tạm!');
+                        }}
+                        title="Copy số ví"
+                      >
+                        <Copy size={16} weight="bold" />
+                      </button>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Security Actions Cards (Section 7) */}
-              <div className="security-grid">
-                {/* Credentials updates */}
-                <div className="security-action-card">
-                  <h3>Cấu hình bảo mật</h3>
-                  <p style={{ color: 'var(--muted)', fontSize: '0.9rem', lineHeight: 1.5, margin: '0 0 24px' }}>
-                    Nâng cấp lớp bảo mật tài khoản định kỳ để giảm thiểu rủi ro bị tấn công tài chính.
-                  </p>
-                  
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <button
-                      className="secondary-button"
-                      style={{ width: '100%', minHeight: '48px', justifyContent: 'flex-start', padding: '0 16px', fontWeight: 700 }}
-                      onClick={() => setModalType('password')}
-                    >
-                      Đổi mật khẩu tài khoản
-                    </button>
-                    
-                    <button
-                      className="secondary-button"
-                      style={{ width: '100%', minHeight: '48px', justifyContent: 'flex-start', padding: '0 16px', fontWeight: 700 }}
-                      onClick={() => setModalType('pin')}
-                    >
-                      Đổi mã PIN giao dịch tài chính
-                    </button>
+                {/* 2. Left Column: Personal Profile Details Form */}
+                <div className="profile-card">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                    <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', fontWeight: 700, margin: 0 }}>
+                      Thông tin tài khoản ví
+                    </h3>
+                    {!isEditMode ? (
+                      <button 
+                        type="button"
+                        className="secondary-button" 
+                        style={{ height: '36px', padding: '0 12px', fontSize: '0.82rem', gap: '6px', fontWeight: 700 }}
+                        onClick={() => setIsEditMode(true)}
+                      >
+                        <PencilSimple size={14} /> Chỉnh sửa
+                      </button>
+                    ) : (
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button 
+                          type="button"
+                          className="secondary-button" 
+                          style={{ height: '36px', padding: '0 12px', fontSize: '0.82rem', gap: '4px', fontWeight: 700 }}
+                          onClick={handleCancelProfileEdit}
+                        >
+                          <X size={14} /> Hủy
+                        </button>
+                        <button 
+                          type="button"
+                          className="auth-btn" 
+                          style={{ height: '36px', padding: '0 12px', fontSize: '0.82rem', minWidth: 'auto', fontWeight: 700 }}
+                          onClick={handleSaveProfile}
+                        >
+                          Lưu
+                        </button>
+                      </div>
+                    )}
                   </div>
-                </div>
 
-                {/* Device management */}
-                <div className="security-action-card">
-                  <h3>Quản lý thiết bị đã đăng nhập</h3>
-                  <p style={{ color: 'var(--muted)', fontSize: '0.9rem', lineHeight: 1.5, margin: '0 0 20px' }}>
-                    Danh sách các thiết bị đã truy cập ví của bạn. Bạn có thể xóa quyền truy cập của thiết bị lạ.
-                  </p>
-
-                  <div className="device-list">
-                    {devices.map(dev => (
-                      <div className="device-item" key={dev.id}>
-                        <div className="device-info-wrapper">
-                          <div className="device-icon">
-                            {dev.type === 'desktop' ? <Laptop size={22} /> : <DeviceMobile size={22} />}
-                          </div>
-                          <div className="device-detail">
-                            <strong>{dev.name}</strong>
-                            <span>Hoạt động: {dev.lastLogin}</span>
-                          </div>
+                  <form className="auth-form" style={{ gap: '20px' }} onSubmit={handleSaveProfile}>
+                    <div className="profile-info-grid">
+                      <div className="profile-field">
+                        <label>Họ và tên (Chính chủ)</label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
+                          <span style={{ color: 'var(--ink)' }}>{userProfile.fullName}</span>
+                          <Lock size={14} style={{ color: 'var(--muted)', opacity: 0.6 }} title="Thông tin đã KYC không thể chỉnh sửa" />
                         </div>
-                        {dev.id !== 1 && (
-                          <button className="device-remove-btn" onClick={() => removeDevice(dev.id, dev.name)}>
-                            Thu hồi
-                          </button>
+                      </div>
+
+                      <div className="profile-field">
+                        <label>Số điện thoại ví</label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
+                          <span style={{ color: 'var(--ink)' }}>{userProfile.phone}</span>
+                          <Lock size={14} style={{ color: 'var(--muted)', opacity: 0.6 }} title="Thông tin đã KYC không thể chỉnh sửa" />
+                        </div>
+                      </div>
+
+                      <div className="profile-field">
+                        <label>Số CCCD / Hộ chiếu</label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
+                          <span style={{ color: 'var(--ink)' }}>{userProfile.citizenId.substring(0, 4)}********</span>
+                          <Lock size={14} style={{ color: 'var(--muted)', opacity: 0.6 }} title="Thông tin đã KYC không thể chỉnh sửa" />
+                        </div>
+                      </div>
+
+                      <div className="profile-field">
+                        <label>Địa chỉ Email</label>
+                        {isEditMode ? (
+                          <input 
+                            type="email" 
+                            className="profile-field-edit-input" 
+                            value={editProfile.email}
+                            onChange={(e) => setEditProfile({ ...editProfile, email: e.target.value })}
+                          />
+                        ) : (
+                          <span style={{ marginTop: '6px' }}>{userProfile.email}</span>
                         )}
                       </div>
-                    ))}
-                  </div>
+
+                      <div className="profile-field">
+                        <label>Ngày sinh</label>
+                        {isEditMode ? (
+                          <input 
+                            type="date" 
+                            className="profile-field-edit-input" 
+                            value={editProfile.dob}
+                            onChange={(e) => setEditProfile({ ...editProfile, dob: e.target.value })}
+                          />
+                        ) : (
+                          <span style={{ marginTop: '6px' }}>{userProfile.dob}</span>
+                        )}
+                      </div>
+
+                      <div className="profile-field">
+                        <label>Giới tính</label>
+                        {isEditMode ? (
+                          <select 
+                            className="profile-field-edit-input profile-field-select" 
+                            value={editProfile.gender}
+                            onChange={(e) => setEditProfile({ ...editProfile, gender: e.target.value })}
+                          >
+                            <option value="Nam">Nam</option>
+                            <option value="Nữ">Nữ</option>
+                            <option value="Khác">Khác</option>
+                          </select>
+                        ) : (
+                          <span style={{ marginTop: '6px' }}>{userProfile.gender}</span>
+                        )}
+                      </div>
+
+                      <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
+                        <label>Địa chỉ thường trú</label>
+                        {isEditMode ? (
+                          <input 
+                            type="text" 
+                            className="profile-field-edit-input" 
+                            value={editProfile.address}
+                            onChange={(e) => setEditProfile({ ...editProfile, address: e.target.value })}
+                          />
+                        ) : (
+                          <span style={{ marginTop: '6px' }}>{userProfile.address}</span>
+                        )}
+                      </div>
+
+                      <div className="profile-field" style={{ gridColumn: '1 / -1', borderBottom: 'none', paddingBottom: 0 }}>
+                        <label>Trạng thái tài khoản</label>
+                        <div className="status-pill active" style={{ marginTop: '6px' }}>
+                          ĐANG HOẠT ĐỘNG
+                        </div>
+                      </div>
+                    </div>
+                  </form>
+
+                  <button 
+                    type="button" 
+                    className="btn-logout-profile"
+                    onClick={handleLogout}
+                  >
+                    <SignOut size={18} />
+                    Đăng xuất tài khoản ví
+                  </button>
                 </div>
 
-                {/* Login History */}
+                {/* 3. Right Column: Transaction Limits & Security Settings */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                  
+
+                  {/* Security Configurations Toggles */}
+                  <div className="security-action-card">
+                    <h3 style={{ margin: '0 0 16px', fontSize: '1.1rem', fontWeight: 700 }}>Xác thực bảo mật</h3>
+                    <p style={{ color: 'var(--muted)', fontSize: '0.82rem', margin: '0 0 20px', lineHeight: 1.4 }}>
+                      Quản lý các lớp bảo mật và phương thức xác thực khi nạp, chuyển, rút tiền.
+                    </p>
+
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <div className="profile-switch-row">
+                        <div className="switch-label-group">
+                          <strong>Xác thực vân tay / Face ID</strong>
+                          <span>Đăng nhập nhanh và thanh toán sinh trắc học</span>
+                        </div>
+                        <label className="ios-switch">
+                          <input 
+                            type="checkbox" 
+                            checked={securityToggles.biometrics} 
+                            onChange={(e) => {
+                              setSecurityToggles({ ...securityToggles, biometrics: e.target.checked });
+                              showToast(e.target.checked ? 'Đã bật xác thực FaceID/Vân tay!' : 'Đã tắt xác thực sinh trắc học.', 'warning');
+                            }}
+                          />
+                          <span className="ios-slider" />
+                        </label>
+                      </div>
+
+                      <div className="profile-switch-row">
+                        <div className="switch-label-group">
+                          <strong>Bảo vệ OTP qua SMS</strong>
+                          <span>Xác thực OTP khi liên kết ngân hàng & unlinking</span>
+                        </div>
+                        <label className="ios-switch">
+                          <input 
+                            type="checkbox" 
+                            checked={securityToggles.smsOtp} 
+                            onChange={(e) => {
+                              setSecurityToggles({ ...securityToggles, smsOtp: e.target.checked });
+                              showToast(e.target.checked ? 'Đã kích hoạt bảo mật SMS OTP.' : 'Đã tắt SMS OTP xác thực.', 'warning');
+                            }}
+                          />
+                          <span className="ios-slider" />
+                        </label>
+                      </div>
+
+                      <div className="profile-switch-row">
+                        <div className="switch-label-group">
+                          <strong>Thông báo giao dịch Email</strong>
+                          <span>Nhận email sao kê sau mỗi giao dịch</span>
+                        </div>
+                        <label className="ios-switch">
+                          <input 
+                            type="checkbox" 
+                            checked={securityToggles.emailOtp} 
+                            onChange={(e) => {
+                              setSecurityToggles({ ...securityToggles, emailOtp: e.target.checked });
+                              showToast(e.target.checked ? 'Đã đăng ký nhận biên lai email.' : 'Đã hủy nhận email sao kê.', 'warning');
+                            }}
+                          />
+                          <span className="ios-slider" />
+                        </label>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+                      <button
+                        type="button"
+                        className="secondary-button"
+                        style={{ flex: 1, minHeight: '44px', fontSize: '0.85rem', fontWeight: 700 }}
+                        onClick={() => setModalType('password')}
+                      >
+                        Đổi mật khẩu
+                      </button>
+                      <button
+                        type="button"
+                        className="secondary-button"
+                        style={{ flex: 1, minHeight: '44px', fontSize: '0.85rem', fontWeight: 700 }}
+                        onClick={() => setModalType('pin')}
+                      >
+                        Đổi mã PIN
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Device Management Card */}
+                  <div className="security-action-card">
+                    <h3 style={{ margin: '0 0 16px', fontSize: '1.1rem', fontWeight: 700 }}>Thiết bị đăng nhập</h3>
+                    <p style={{ color: 'var(--muted)', fontSize: '0.82rem', margin: '0 0 20px', lineHeight: 1.4 }}>
+                      Quản lý và thu hồi các thiết bị đang đăng nhập tài khoản ví của bạn.
+                    </p>
+
+                    <div className="device-list">
+                      {devices.map(dev => (
+                        <div className="device-item" key={dev.id}>
+                          <div className="device-info-wrapper">
+                            <div className="device-icon">
+                              {dev.type === 'desktop' ? <Laptop size={20} /> : <DeviceMobile size={20} />}
+                            </div>
+                            <div className="device-detail">
+                              <strong style={{ fontSize: '0.85rem' }}>{dev.name}</strong>
+                              <span>{dev.lastLogin}</span>
+                            </div>
+                          </div>
+                          {dev.id !== 1 && (
+                            <button className="device-remove-btn" onClick={() => removeDevice(dev.id, dev.name)}>
+                              Thu hồi
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* 4. Full-width: Login History Logs */}
                 <div className="security-action-card" style={{ gridColumn: '1 / -1' }}>
-                  <h3>Lịch sử đăng nhập</h3>
+                  <h3 style={{ margin: '0 0 16px', fontSize: '1.15rem', fontWeight: 700 }}>Lịch sử đăng nhập tài khoản</h3>
+                  <p style={{ color: 'var(--muted)', fontSize: '0.85rem', margin: '0 0 20px' }}>
+                    Danh sách chi tiết 3 lần đăng nhập gần nhất vào hệ thống ví VT Pay.
+                  </p>
+                  
                   <div className="transaction-table-wrapper">
                     <table className="transaction-table">
                       <thead>
                         <tr>
-                          <th>Địa chỉ IP</th>
-                          <th>Tên Thiết bị</th>
-                          <th>Thời gian đăng nhập</th>
-                          <th>Trạng thái</th>
+                          <th>Địa chỉ IP truy cập</th>
+                          <th>Tên thiết bị đăng nhập</th>
+                          <th>Thời gian kết nối</th>
+                          <th>Trạng thái đăng nhập</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1635,6 +2398,7 @@ function Dashboard() {
                     </table>
                   </div>
                 </div>
+
               </div>
             </div>
           )}
@@ -1658,10 +2422,10 @@ function Dashboard() {
             <FormInput
               label="Số tiền nạp (đ)"
               id="topAmt"
-              type="number"
-              placeholder="Ví dụ: 100000"
+              type="text"
+              placeholder="Ví dụ: 100,000"
               value={modalAmount}
-              onChange={(e) => setModalAmount(e.target.value)}
+              onChange={(e) => setModalAmount(formatNumberWithCommas(e.target.value))}
               style={{ marginBottom: '20px' }}
               required
             />
@@ -1674,7 +2438,7 @@ function Dashboard() {
         ) : (
           <form onSubmit={handleVerifyTopupPin}>
             <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: '0 0 20px', lineHeight: 1.5 }}>
-              Để xác nhận nạp số tiền <strong>{parseFloat(modalAmount).toLocaleString()}đ</strong> từ ngân hàng liên kết vào ví VT Pay, vui lòng nhập mã PIN giao dịch của bạn.
+              Để xác nhận nạp số tiền <strong>{parseNumberFromCommas(modalAmount).toLocaleString()}đ</strong> từ ngân hàng liên kết vào ví VT Pay, vui lòng nhập mã PIN giao dịch của bạn.
             </p>
 
             {topupError && (
@@ -1720,27 +2484,80 @@ function Dashboard() {
       </Modal>
 
       <Modal isOpen={modalType === 'withdraw'} onClose={() => setModalType(null)} title="Rút tiền về tài khoản ngân hàng">
-        <form onSubmit={handleModalActionSubmit}>
-          <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: '0 0 20px', lineHeight: 1.5 }}>
-            Chuyển tiền từ tài khoản ví VT Pay về ngân hàng liên kết. Số dư khả dụng hiện tại: <strong style={{ color: 'var(--accent)' }}>{wallet.balance.toLocaleString()}đ</strong>.
-          </p>
+        {withdrawStep === 1 ? (
+          <form onSubmit={handleWithdrawAmountSubmit}>
+            <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: '0 0 20px', lineHeight: 1.5 }}>
+              Chuyển tiền từ tài khoản ví VT Pay về ngân hàng liên kết. Số dư khả dụng hiện tại: <strong style={{ color: 'var(--accent)' }}>{wallet.balance.toLocaleString()}đ</strong>.
+            </p>
 
-          <FormInput
-            label="Số tiền rút (đ)"
-            id="withAmt"
-            type="number"
-            placeholder="Ví dụ: 50000"
-            value={modalAmount}
-            onChange={(e) => setModalAmount(e.target.value)}
-            style={{ marginBottom: '20px' }}
-            required
-          />
+            {withdrawError && (
+              <div className="error-message" style={{ fontSize: '0.9rem', marginBottom: '16px' }}>
+                {withdrawError}
+              </div>
+            )}
 
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <button className="secondary-button" type="button" style={{ flex: 1, minHeight: '46px' }} onClick={() => setModalType(null)}>Hủy bỏ</button>
-            <button className="auth-btn" type="submit" style={{ flex: 1, minHeight: '46px' }}>Xác nhận rút</button>
-          </div>
-        </form>
+            <FormInput
+              label="Số tiền rút (đ)"
+              id="withAmt"
+              type="text"
+              placeholder="Ví dụ: 50,000"
+              value={modalAmount}
+              onChange={(e) => setModalAmount(formatNumberWithCommas(e.target.value))}
+              style={{ marginBottom: '20px' }}
+              required
+            />
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button className="secondary-button" type="button" style={{ flex: 1, minHeight: '46px' }} onClick={() => setModalType(null)}>Hủy bỏ</button>
+              <button className="auth-btn" type="submit" style={{ flex: 1, minHeight: '46px' }}>Tiếp tục</button>
+            </div>
+          </form>
+        ) : (
+          <form onSubmit={handleVerifyWithdrawPin}>
+            <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: '0 0 20px', lineHeight: 1.5 }}>
+              Để xác nhận rút số tiền <strong>{parseNumberFromCommas(modalAmount).toLocaleString()}đ</strong> về tài khoản ngân hàng liên kết, vui lòng nhập mã PIN giao dịch của bạn.
+            </p>
+
+            {withdrawError && (
+              <div className="error-message" style={{ fontSize: '0.9rem', marginBottom: '16px' }}>
+                {withdrawError}
+              </div>
+            )}
+
+            <FormInput
+              label="Mã PIN giao dịch (6 số)"
+              id="withdrawPin"
+              type="password"
+              placeholder="Nhập mã PIN giao dịch"
+              value={withdrawPin}
+              onChange={(e) => setWithdrawPin(e.target.value.replace(/\D/g, ''))}
+              inputStyle={{ textAlign: 'center', letterSpacing: '8px', fontSize: '1.2rem' }}
+              maxLength="6"
+              required
+              disabled={isWithdrawLoading}
+            />
+
+            <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+              <button
+                className="secondary-button"
+                type="button"
+                style={{ flex: 1, minHeight: '46px' }}
+                onClick={() => setWithdrawStep(1)}
+                disabled={isWithdrawLoading}
+              >
+                Quay lại
+              </button>
+              <button
+                className="auth-btn"
+                type="submit"
+                style={{ flex: 1, minHeight: '46px' }}
+                disabled={isWithdrawLoading}
+              >
+                {isWithdrawLoading ? <div className="btn-spinner" /> : 'Xác nhận rút'}
+              </button>
+            </div>
+          </form>
+        )}
       </Modal>
 
       <Modal isOpen={modalType === 'password'} onClose={() => setModalType(null)} title="Đổi mật khẩu tài khoản ví">
@@ -1932,7 +2749,7 @@ function Dashboard() {
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--line)', paddingBottom: '8px', marginBottom: '8px' }}>
               <span style={{ color: 'var(--muted)' }}>Số tiền chuyển:</span>
-              <strong style={{ color: 'var(--ink)', fontSize: '1rem' }}>{parseFloat(transferAmount || 0).toLocaleString()}đ</strong>
+              <strong style={{ color: 'var(--ink)', fontSize: '1rem' }}>{parseNumberFromCommas(transferAmount || 0).toLocaleString()}đ</strong>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--line)', paddingBottom: '8px', marginBottom: '8px' }}>
               <span style={{ color: 'var(--muted)' }}>Phí chuyển tiền:</span>
@@ -1987,6 +2804,131 @@ function Dashboard() {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Modal 7: QR CODE SCANNER */}
+      <Modal
+        isOpen={modalType === 'qrscanner'}
+        onClose={() => {
+          setModalType(null)
+          setQrFile(null)
+          setScanSuccess(false)
+        }}
+        title="Quét mã QR chuyển tiền"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: '0 0 20px', lineHeight: 1.4, textAlign: 'center' }}>
+            Giả lập quét mã QR để lấy thông tin tài khoản người nhận. Hỗ trợ quét qua camera hoặc tải ảnh từ thư viện.
+          </p>
+
+          {/* Scanner Viewframe */}
+          <div 
+            style={{
+              width: '240px',
+              height: '240px',
+              border: '2px solid var(--accent)',
+              borderRadius: '20px',
+              position: 'relative',
+              overflow: 'hidden',
+              background: '#090f1d',
+              display: 'grid',
+              placeItems: 'center',
+              boxShadow: '0 10px 25px rgba(0, 106, 255, 0.1)',
+              marginBottom: '24px'
+            }}
+          >
+            {/* Animated Laser line */}
+            <div 
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '3px',
+                background: 'linear-gradient(90deg, transparent, #006aff, transparent)',
+                boxShadow: '0 0 8px #006aff',
+                animation: 'scanLineEffect 2s linear infinite'
+              }} 
+            />
+
+            {scanSuccess ? (
+              <div style={{ color: '#22c55e', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', zIndex: 2 }}>
+                <CheckCircle size={44} weight="fill" />
+                <strong style={{ fontSize: '0.9rem' }}>Quét mã thành công!</strong>
+              </div>
+            ) : qrFile ? (
+              <div style={{ color: 'var(--accent)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', zIndex: 2 }}>
+                <div className="btn-spinner" style={{ width: '32px', height: '32px', borderWidth: '3px' }} />
+                <span style={{ fontSize: '0.78rem', color: 'var(--muted)' }}>Đang giải mã QR...</span>
+              </div>
+            ) : (
+              <div style={{ color: 'var(--muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', zIndex: 2 }}>
+                <QrCode size={48} weight="thin" />
+                <span style={{ fontSize: '0.78rem' }}>Đặt mã QR vào khung hình</span>
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
+            
+            {/* File Upload mock scanner */}
+            <div style={{ position: 'relative', width: '100%' }}>
+              <input 
+                type="file" 
+                accept="image/*"
+                style={{ position: 'absolute', inset: 0, opacity: 0, width: '100%', cursor: 'pointer', zIndex: 5 }}
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    setQrFile(e.target.files[0])
+                    // Simulate decoding delay
+                    setTimeout(() => {
+                      setScanSuccess(true)
+                      showToast('Giải mã QR thành công!')
+                      // Fill transfer details
+                      setTimeout(() => {
+                        setTransferPhone('0987654321')
+                        setTransferAmount('')
+                        setTransferNote('Chuyen khoan qua QR nhan tien')
+                        setActiveTab('transactions')
+                        setModalType(null)
+                        setQrFile(null)
+                        setScanSuccess(false)
+                      }, 1200)
+                    }, 1500)
+                  }
+                }}
+              />
+              <button 
+                className="secondary-button" 
+                type="button" 
+                style={{ width: '100%', minHeight: '44px', fontWeight: 700 }}
+              >
+                {qrFile ? `Đã chọn: ${qrFile.name.substring(0, 15)}...` : 'Tải lên ảnh QR từ thiết bị'}
+              </button>
+            </div>
+
+            {/* Simulated direct scan target */}
+            <button
+              className="auth-btn"
+              type="button"
+              style={{ width: '100%', minHeight: '44px' }}
+              onClick={() => {
+                setScanSuccess(true)
+                showToast('Quét QR Nguyễn Bá Việt thành công!')
+                setTimeout(() => {
+                  setTransferPhone('0987654321')
+                  setTransferAmount('')
+                  setTransferNote('Quet QR chuyen tien nhanh')
+                  setActiveTab('transactions')
+                  setModalType(null)
+                  setScanSuccess(false)
+                }, 1000)
+              }}
+            >
+              Simulate quét QR người nhận (0987654321)
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   )
