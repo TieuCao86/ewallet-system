@@ -33,7 +33,7 @@ const generateRandomId = (prefix = 'TX') => {
 
 function Dashboard() {
   const navigate = useNavigate()
-  
+
   // App states
   const [activeTab, setActiveTab] = useState('overview')
   const [loading, setLoading] = useState(true)
@@ -170,7 +170,7 @@ function Dashboard() {
     gender: 'Nam',
     address: '123 Đường Láng, Quận Đống Đa, Hà Nội'
   })
-  
+
   // Transaction Limits
   const [limitPerTransaction] = useState(50000000)
   const [limitPerDay] = useState(100000000)
@@ -199,7 +199,7 @@ function Dashboard() {
     const fetchData = async () => {
       const token = localStorage.getItem('accessToken')
       const userId = localStorage.getItem('userId')
-      
+
       if (!token || !userId) {
         setLoading(false)
         return
@@ -211,7 +211,7 @@ function Dashboard() {
           headers: { 'Authorization': `Bearer ${token}` }
         })
         const profileData = await profileRes.json()
-        
+
         if (profileRes.ok && !profileData.errorCode) {
           const fetchedProfile = {
             fullName: profileData.fullName || 'Nguyễn Bá Việt',
@@ -243,7 +243,7 @@ function Dashboard() {
           headers: { 'Authorization': `Bearer ${token}` }
         })
         const walletData = await walletRes.json()
-        
+
         if (walletRes.ok && !walletData.errorCode) {
           setWallet({
             balance: walletData.balance || 42800000,
@@ -258,7 +258,7 @@ function Dashboard() {
           headers: { 'Authorization': `Bearer ${token}` }
         })
         const transData = await transRes.json()
-        
+
         if (transRes.ok && !transData.errorCode && Array.isArray(transData.transactions)) {
           setTransactions(transData.transactions.map(t => ({
             id: t.transactionId || generateRandomId('TX'),
@@ -401,7 +401,7 @@ function Dashboard() {
     setTimeout(() => {
       setIsLinkingLoading(false)
       setLinkingStep(2) // Move to OTP
-      
+
       const expiryTime = Date.now() + 60 * 1000
       localStorage.setItem('linkingOtpExpiryTime', expiryTime.toString())
       setLinkingCountdown(60) // Start 60s countdown
@@ -454,7 +454,7 @@ function Dashboard() {
 
       setLinkedBanks(prev => [...prev, newBank])
       showToast(`Liên kết tài khoản ${newBank.bankName} thành công!`)
-      
+
       // Reset form
       localStorage.removeItem('linkingOtpExpiryTime')
       setBankAccountNo('')
@@ -467,7 +467,7 @@ function Dashboard() {
     setUnlinkBankTarget(card)
     setUnlinkOtp('')
     setUnlinkError('')
-    
+
     // OTP is not sent automatically on modal open anymore
     const expiry = localStorage.getItem('unlinkOtpExpiryTime')
     setUnlinkCountdown(calculateRemainingSeconds(expiry))
@@ -501,7 +501,7 @@ function Dashboard() {
       setIsUnlinkingLoading(false)
       setLinkedBanks(prev => prev.filter(b => b.id !== unlinkBankTarget.id))
       showToast(`Đã hủy liên kết tài khoản ${unlinkBankTarget.bankName} thành công!`)
-      
+
       localStorage.removeItem('unlinkOtpExpiryTime')
       setUnlinkBankTarget(null)
       setUnlinkOtp('')
@@ -699,18 +699,18 @@ function Dashboard() {
       setTransferError('Vui lòng nhập số tiền hợp lệ.')
       return
     }
-    
+
     if (amountVal > wallet.balance) {
       setTransferError('Số dư khả dụng trong ví không đủ để thực hiện giao dịch.')
       return
     }
- 
-     // Input checks passed, open confirmation modal
-     setShowTransferConfirm(true)
-     setTransferPin('')
-     setTransferConfirmError('')
-   }
- 
+
+    // Input checks passed, open confirmation modal
+    setShowTransferConfirm(true)
+    setTransferPin('')
+    setTransferConfirmError('')
+  }
+
   // Handle Verify Transfer PIN Submission (Transitions to OTP Step)
   const handleVerifyTransferPin = (e) => {
     e.preventDefault()
@@ -781,12 +781,12 @@ function Dashboard() {
       setWallet(prev => ({ ...prev, balance: prev.balance - amountVal }))
       setTransactions(prev => [newTx, ...prev])
       showToast(`Chuyển khoản thành công ${amountVal.toLocaleString()}đ tới ${transferPhone}!`)
-      
+
       // Reset transfer inputs
       setTransferPhone('')
       setTransferAmount('')
       setTransferNote('')
-      
+
       // Close confirmation modal
       setShowTransferConfirm(false)
       setTransferOtpStep(false)
@@ -1022,13 +1022,13 @@ function Dashboard() {
   const filteredTransactions = transactions.filter(t => {
     if (filterType !== 'ALL' && t.type !== filterType) return false
     if (filterStatus !== 'ALL' && t.status !== filterStatus) return false
-    
+
     if (filterDate !== 'ALL') {
       const today = new Date()
       const txDate = new Date(t.date)
       const diffTime = Math.abs(today - txDate)
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-      
+
       if (filterDate === 'TODAY' && diffDays > 1) return false
       if (filterDate === 'WEEK' && diffDays > 7) return false
       if (filterDate === 'MONTH' && diffDays > 30) return false
@@ -1041,13 +1041,13 @@ function Dashboard() {
       const matchesAmount = String(Math.abs(t.amount)).includes(q)
       const matchesType = (
         t.type === 'TRANSFER' ? 'chuyển tiền transfer' :
-        t.type === 'TOPUP' ? 'nạp ví topup' :
-        'rút ví withdraw'
+          t.type === 'TOPUP' ? 'nạp ví topup' :
+            'rút ví withdraw'
       ).includes(q)
-      
+
       if (!matchesId && !matchesRecipient && !matchesAmount && !matchesType) return false
     }
-    
+
     return true
   })
 
@@ -1111,7 +1111,7 @@ function Dashboard() {
                 <Bell size={20} weight="bold" />
                 {notifications.some(n => !n.read) && <span className="header-icon-badge">1</span>}
               </button>
-              
+
               {showNotifications && (
                 <div className="header-notifications-dropdown">
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px solid var(--line)', paddingBottom: '8px' }}>
@@ -1147,7 +1147,6 @@ function Dashboard() {
               </div>
               <div className="user-info">
                 <strong>{userProfile.fullName}</strong>
-                <span>{isLive ? 'Live Connection' : 'Mock Mode'}</span>
               </div>
             </div>
           </div>

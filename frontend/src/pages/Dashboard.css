@@ -149,6 +149,11 @@
   align-items: center;
   justify-content: space-between;
   gap: 24px;
+  width: 100%;
+}
+
+.header-title {
+  width: 300px;
 }
 
 .header-title h1 {
