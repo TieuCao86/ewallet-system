@@ -145,23 +145,30 @@ function Dashboard() {
   const [linkingCountdown, setLinkingCountdown] = useState(0)
   const [unlinkCountdown, setUnlinkCountdown] = useState(0)
 
-  // Topup PIN States
-  const [topupStep, setTopupStep] = useState(1) // 1: input amount, 2: verify PIN
+  // Topup PIN & OTP States
+  const [topupStep, setTopupStep] = useState(1) // 1: input amount, 2: verify PIN, 3: verify OTP
   const [topupPin, setTopupPin] = useState('')
+  const [topupOtp, setTopupOtp] = useState('')
   const [topupError, setTopupError] = useState('')
   const [isTopupLoading, setIsTopupLoading] = useState(false)
+  const [topupCountdown, setTopupCountdown] = useState(0)
 
-  // Withdraw PIN States
-  const [withdrawStep, setWithdrawStep] = useState(1) // 1: input amount, 2: verify PIN
+  // Withdraw PIN & OTP States
+  const [withdrawStep, setWithdrawStep] = useState(1) // 1: input amount, 2: verify PIN, 3: verify OTP
   const [withdrawPin, setWithdrawPin] = useState('')
+  const [withdrawOtp, setWithdrawOtp] = useState('')
   const [withdrawError, setWithdrawError] = useState('')
   const [isWithdrawLoading, setIsWithdrawLoading] = useState(false)
+  const [withdrawCountdown, setWithdrawCountdown] = useState(0)
 
-  // Transfer Confirmation PIN States
+  // Transfer Confirmation PIN & OTP States
   const [showTransferConfirm, setShowTransferConfirm] = useState(false)
   const [transferPin, setTransferPin] = useState('')
+  const [transferOtp, setTransferOtp] = useState('')
+  const [transferOtpStep, setTransferOtpStep] = useState(false) // false: PIN, true: OTP
   const [transferConfirmError, setTransferConfirmError] = useState('')
   const [isTransferConfirmLoading, setIsTransferConfirmLoading] = useState(false)
+  const [transferCountdown, setTransferCountdown] = useState(0)
 
   // Profile Settings States
   const [isEditMode, setIsEditMode] = useState(false)
@@ -343,6 +350,33 @@ function Dashboard() {
     }, 1000)
     return () => clearInterval(timer)
   }, [unlinkCountdown])
+
+  // Timer for transfer OTP countdown
+  useEffect(() => {
+    if (transferCountdown <= 0) return
+    const timer = setInterval(() => {
+      setTransferCountdown(prev => (prev <= 1 ? 0 : prev - 1))
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [transferCountdown])
+
+  // Timer for topup OTP countdown
+  useEffect(() => {
+    if (topupCountdown <= 0) return
+    const timer = setInterval(() => {
+      setTopupCountdown(prev => (prev <= 1 ? 0 : prev - 1))
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [topupCountdown])
+
+  // Timer for withdraw OTP countdown
+  useEffect(() => {
+    if (withdrawCountdown <= 0) return
+    const timer = setInterval(() => {
+      setWithdrawCountdown(prev => (prev <= 1 ? 0 : prev - 1))
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [withdrawCountdown])
 
   // Initialize and sync countdown timers from localStorage on mount
   useEffect(() => {
@@ -688,18 +722,33 @@ function Dashboard() {
      setTransferConfirmError('')
    }
  
-   // Handle Verify Transfer PIN Submission
-   const handleVerifyTransferPin = async (e) => {
-     e.preventDefault()
-     setTransferConfirmError('')
- 
-     if (!transferPin || transferPin.length !== 6 || isNaN(transferPin)) {
-       setTransferConfirmError('Mã PIN giao dịch phải gồm 6 chữ số.')
-       return
-     }
- 
-     setIsTransferConfirmLoading(true)
-     const amountVal = parseNumberFromCommas(transferAmount)
+  // Handle Verify Transfer PIN Submission (Transitions to OTP Step)
+  const handleVerifyTransferPin = (e) => {
+    e.preventDefault()
+    setTransferConfirmError('')
+
+    if (!transferPin || transferPin.length !== 6 || isNaN(transferPin)) {
+      setTransferConfirmError('Mã PIN giao dịch phải gồm 6 chữ số.')
+      return
+    }
+
+    setTransferOtpStep(true)
+    setTransferOtp('')
+    setTransferCountdown(60)
+  }
+
+  // Handle Verify Transfer OTP Submission (Completes Transfer)
+  const handleVerifyTransferOtp = async (e) => {
+    e.preventDefault()
+    setTransferConfirmError('')
+
+    if (!transferOtp || transferOtp.length !== 6 || isNaN(transferOtp)) {
+      setTransferConfirmError('Mã OTP phải gồm 6 chữ số.')
+      return
+    }
+
+    setIsTransferConfirmLoading(true)
+    const amountVal = parseNumberFromCommas(transferAmount)
 
     try {
       const token = localStorage.getItem('accessToken')
@@ -714,12 +763,13 @@ function Dashboard() {
             senderWalletId: wallet.walletId,
             receiverPhoneNumber: transferPhone,
             amount: amountVal,
-            pin: transferPin
+            pin: transferPin,
+            otp: transferOtp
           })
         })
         const resData = await response.json()
         if (!response.ok || resData.errorCode) {
-          setTransferConfirmError(resData.message || 'Chuyển tiền thất bại. Vui lòng kiểm tra lại mã PIN hoặc người nhận.')
+          setTransferConfirmError(resData.message || 'Chuyển tiền thất bại. Vui lòng kiểm tra lại thông tin.')
           setIsTransferConfirmLoading(false)
           return
         }
@@ -749,13 +799,23 @@ function Dashboard() {
       
       // Close confirmation modal
       setShowTransferConfirm(false)
+      setTransferOtpStep(false)
       setTransferPin('')
+      setTransferOtp('')
     } catch (err) {
       console.error(err)
       setTransferConfirmError('Lỗi kết nối mạng. Không thể thực hiện chuyển tiền.')
     } finally {
       setIsTransferConfirmLoading(false)
     }
+  }
+
+  // Handle Resend Transfer OTP
+  const handleResendTransferOtp = () => {
+    if (transferCountdown > 0) return
+    setTransferCountdown(60)
+    setTransferOtp('')
+    showToast('Đã gửi lại mã OTP chuyển tiền (mô phỏng)!')
   }
 
   // Handle Topup 2-Step verification
@@ -782,6 +842,22 @@ function Dashboard() {
       return
     }
 
+    // PIN verified, move to OTP step
+    setTopupStep(3)
+    setTopupOtp('')
+    setTopupCountdown(60)
+    showToast('Mã OTP xác thực nạp tiền đã được gửi qua SMS!', 'warning')
+  }
+
+  const handleVerifyTopupOtp = (e) => {
+    e.preventDefault()
+    setTopupError('')
+
+    if (!topupOtp || topupOtp.length !== 6 || isNaN(topupOtp)) {
+      setTopupError('Mã OTP phải gồm 6 chữ số.')
+      return
+    }
+
     setIsTopupLoading(true)
     setTimeout(() => {
       setIsTopupLoading(false)
@@ -801,9 +877,17 @@ function Dashboard() {
 
       setModalAmount('')
       setTopupPin('')
+      setTopupOtp('')
       setModalType(null)
       setTopupStep(1)
     }, 1500)
+  }
+
+  const handleResendTopupOtp = () => {
+    if (topupCountdown > 0) return
+    setTopupCountdown(60)
+    setTopupOtp('')
+    showToast('Đã gửi lại mã OTP nạp tiền!', 'warning')
   }
 
   // Handle Withdraw 2-Step verification
@@ -835,6 +919,22 @@ function Dashboard() {
       return
     }
 
+    // PIN verified, move to OTP step
+    setWithdrawStep(3)
+    setWithdrawOtp('')
+    setWithdrawCountdown(60)
+    showToast('Mã OTP xác thực rút tiền đã được gửi qua SMS!', 'warning')
+  }
+
+  const handleVerifyWithdrawOtp = (e) => {
+    e.preventDefault()
+    setWithdrawError('')
+
+    if (!withdrawOtp || withdrawOtp.length !== 6 || isNaN(withdrawOtp)) {
+      setWithdrawError('Mã OTP phải gồm 6 chữ số.')
+      return
+    }
+
     setIsWithdrawLoading(true)
     setTimeout(() => {
       setIsWithdrawLoading(false)
@@ -859,9 +959,17 @@ function Dashboard() {
 
       setModalAmount('')
       setWithdrawPin('')
+      setWithdrawOtp('')
       setModalType(null)
       setWithdrawStep(1)
     }, 1500)
+  }
+
+  const handleResendWithdrawOtp = () => {
+    if (withdrawCountdown > 0) return
+    setWithdrawCountdown(60)
+    setWithdrawOtp('')
+    showToast('Đã gửi lại mã OTP rút tiền!', 'warning')
   }
 
   // Handle mock Document KYC submission
@@ -2407,7 +2515,7 @@ function Dashboard() {
 
       {/* Modals */}
       <Modal isOpen={modalType === 'topup'} onClose={() => setModalType(null)} title="Nạp tiền vào ví VT Pay">
-        {topupStep === 1 ? (
+        {topupStep === 1 && (
           <form onSubmit={handleTopupAmountSubmit}>
             <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: '0 0 20px', lineHeight: 1.5 }}>
               Nạp ví từ tài khoản ngân hàng Vietcombank đã liên kết (Số tài khoản: 1009*****686).
@@ -2435,7 +2543,9 @@ function Dashboard() {
               <button className="auth-btn" type="submit" style={{ flex: 1, minHeight: '46px' }}>Tiếp tục</button>
             </div>
           </form>
-        ) : (
+        )}
+
+        {topupStep === 2 && (
           <form onSubmit={handleVerifyTopupPin}>
             <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: '0 0 20px', lineHeight: 1.5 }}>
               Để xác nhận nạp số tiền <strong>{parseNumberFromCommas(modalAmount).toLocaleString()}đ</strong> từ ngân hàng liên kết vào ví VT Pay, vui lòng nhập mã PIN giao dịch của bạn.
@@ -2476,6 +2586,78 @@ function Dashboard() {
                 style={{ flex: 1, minHeight: '46px' }}
                 disabled={isTopupLoading}
               >
+                Tiếp tục
+              </button>
+            </div>
+          </form>
+        )}
+
+        {topupStep === 3 && (
+          <form onSubmit={handleVerifyTopupOtp}>
+            <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: '0 0 20px', lineHeight: 1.5 }}>
+              Mã OTP xác thực đã được gửi qua SMS tới số <strong>{userProfile.phone}</strong>. Vui lòng nhập mã OTP để hoàn tất nạp <strong>{parseNumberFromCommas(modalAmount).toLocaleString()}đ</strong> vào ví.
+            </p>
+
+            {topupError && (
+              <div className="error-message" style={{ fontSize: '0.9rem', marginBottom: '16px' }}>
+                <Warning size={16} /> {topupError}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', marginBottom: '16px' }}>
+              <div style={{ flex: 1 }}>
+                <FormInput
+                  label="Mã xác thực OTP (6 chữ số)"
+                  id="topupOtp"
+                  type="password"
+                  placeholder="Nhập mã OTP 6 số"
+                  value={topupOtp}
+                  onChange={(e) => setTopupOtp(e.target.value.replace(/\D/g, ''))}
+                  inputStyle={{ textAlign: 'center', letterSpacing: '8px', fontSize: '1.2rem' }}
+                  maxLength="6"
+                  required
+                  disabled={isTopupLoading}
+                  style={{ marginBottom: 0 }}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleResendTopupOtp}
+                disabled={topupCountdown > 0 || isTopupLoading}
+                className="secondary-button"
+                style={{
+                  height: '48px',
+                  whiteSpace: 'nowrap',
+                  padding: '0 16px',
+                  fontSize: '0.88rem',
+                  fontWeight: 700,
+                  borderRadius: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minWidth: '120px'
+                }}
+              >
+                {topupCountdown > 0 ? `Gửi lại (${topupCountdown}s)` : 'Gửi lại mã'}
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+              <button
+                className="secondary-button"
+                type="button"
+                style={{ flex: 1, minHeight: '46px' }}
+                onClick={() => { setTopupStep(2); setTopupError('') }}
+                disabled={isTopupLoading}
+              >
+                Quay lại
+              </button>
+              <button
+                className="auth-btn"
+                type="submit"
+                style={{ flex: 1, minHeight: '46px' }}
+                disabled={isTopupLoading}
+              >
                 {isTopupLoading ? <div className="btn-spinner" /> : 'Xác nhận nạp'}
               </button>
             </div>
@@ -2484,7 +2666,7 @@ function Dashboard() {
       </Modal>
 
       <Modal isOpen={modalType === 'withdraw'} onClose={() => setModalType(null)} title="Rút tiền về tài khoản ngân hàng">
-        {withdrawStep === 1 ? (
+        {withdrawStep === 1 && (
           <form onSubmit={handleWithdrawAmountSubmit}>
             <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: '0 0 20px', lineHeight: 1.5 }}>
               Chuyển tiền từ tài khoản ví VT Pay về ngân hàng liên kết. Số dư khả dụng hiện tại: <strong style={{ color: 'var(--accent)' }}>{wallet.balance.toLocaleString()}đ</strong>.
@@ -2512,7 +2694,9 @@ function Dashboard() {
               <button className="auth-btn" type="submit" style={{ flex: 1, minHeight: '46px' }}>Tiếp tục</button>
             </div>
           </form>
-        ) : (
+        )}
+
+        {withdrawStep === 2 && (
           <form onSubmit={handleVerifyWithdrawPin}>
             <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: '0 0 20px', lineHeight: 1.5 }}>
               Để xác nhận rút số tiền <strong>{parseNumberFromCommas(modalAmount).toLocaleString()}đ</strong> về tài khoản ngân hàng liên kết, vui lòng nhập mã PIN giao dịch của bạn.
@@ -2543,6 +2727,78 @@ function Dashboard() {
                 type="button"
                 style={{ flex: 1, minHeight: '46px' }}
                 onClick={() => setWithdrawStep(1)}
+                disabled={isWithdrawLoading}
+              >
+                Quay lại
+              </button>
+              <button
+                className="auth-btn"
+                type="submit"
+                style={{ flex: 1, minHeight: '46px' }}
+                disabled={isWithdrawLoading}
+              >
+                Tiếp tục
+              </button>
+            </div>
+          </form>
+        )}
+
+        {withdrawStep === 3 && (
+          <form onSubmit={handleVerifyWithdrawOtp}>
+            <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: '0 0 20px', lineHeight: 1.5 }}>
+              Mã OTP xác thực đã được gửi qua SMS tới số <strong>{userProfile.phone}</strong>. Vui lòng nhập mã OTP để hoàn tất rút <strong>{parseNumberFromCommas(modalAmount).toLocaleString()}đ</strong> về ngân hàng.
+            </p>
+
+            {withdrawError && (
+              <div className="error-message" style={{ fontSize: '0.9rem', marginBottom: '16px' }}>
+                <Warning size={16} /> {withdrawError}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', marginBottom: '16px' }}>
+              <div style={{ flex: 1 }}>
+                <FormInput
+                  label="Mã xác thực OTP (6 chữ số)"
+                  id="withdrawOtp"
+                  type="password"
+                  placeholder="Nhập mã OTP 6 số"
+                  value={withdrawOtp}
+                  onChange={(e) => setWithdrawOtp(e.target.value.replace(/\D/g, ''))}
+                  inputStyle={{ textAlign: 'center', letterSpacing: '8px', fontSize: '1.2rem' }}
+                  maxLength="6"
+                  required
+                  disabled={isWithdrawLoading}
+                  style={{ marginBottom: 0 }}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleResendWithdrawOtp}
+                disabled={withdrawCountdown > 0 || isWithdrawLoading}
+                className="secondary-button"
+                style={{
+                  height: '48px',
+                  whiteSpace: 'nowrap',
+                  padding: '0 16px',
+                  fontSize: '0.88rem',
+                  fontWeight: 700,
+                  borderRadius: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minWidth: '120px'
+                }}
+              >
+                {withdrawCountdown > 0 ? `Gửi lại (${withdrawCountdown}s)` : 'Gửi lại mã'}
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+              <button
+                className="secondary-button"
+                type="button"
+                style={{ flex: 1, minHeight: '46px' }}
+                onClick={() => { setWithdrawStep(2); setWithdrawError('') }}
                 disabled={isWithdrawLoading}
               >
                 Quay lại
@@ -2725,85 +2981,159 @@ function Dashboard() {
         </form>
       </Modal>
 
-      {/* Modal 6: CONFIRM TRANSFER WITH PIN */}
+      {/* Modal 6: CONFIRM TRANSFER WITH PIN & OTP */}
       <Modal
         isOpen={showTransferConfirm}
         onClose={() => {
           if (!isTransferConfirmLoading) {
             setShowTransferConfirm(false)
+            setTransferOtpStep(false)
             setTransferPin('')
+            setTransferOtp('')
             setTransferConfirmError('')
           }
         }}
-        title="Xác nhận chuyển tiền"
+        title={transferOtpStep ? 'Xác thực OTP chuyển tiền' : 'Xác nhận chuyển tiền'}
       >
-        <form onSubmit={handleVerifyTransferPin}>
-          <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: '0 0 20px', lineHeight: 1.5 }}>
-            Vui lòng kiểm tra kỹ thông tin giao dịch và nhập mã PIN của bạn để hoàn tất chuyển tiền.
-          </p>
+        {!transferOtpStep ? (
+          <form onSubmit={handleVerifyTransferPin}>
+            <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: '0 0 20px', lineHeight: 1.5 }}>
+              Vui lòng kiểm tra kỹ thông tin giao dịch và nhập mã PIN của bạn để tiếp tục.
+            </p>
 
-          <div className="recent-transactions-card" style={{ padding: '16px', background: 'var(--bg)', border: '1px solid var(--line)', borderRadius: '12px', marginBottom: '20px', fontSize: '0.88rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--line)', paddingBottom: '8px', marginBottom: '8px' }}>
-              <span style={{ color: 'var(--muted)' }}>Tài khoản nhận:</span>
-              <strong style={{ color: 'var(--ink)' }}>{transferPhone}</strong>
+            <div className="recent-transactions-card" style={{ padding: '16px', background: 'var(--bg)', border: '1px solid var(--line)', borderRadius: '12px', marginBottom: '20px', fontSize: '0.88rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--line)', paddingBottom: '8px', marginBottom: '8px' }}>
+                <span style={{ color: 'var(--muted)' }}>Tài khoản nhận:</span>
+                <strong style={{ color: 'var(--ink)' }}>{transferPhone}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--line)', paddingBottom: '8px', marginBottom: '8px' }}>
+                <span style={{ color: 'var(--muted)' }}>Số tiền chuyển:</span>
+                <strong style={{ color: 'var(--ink)', fontSize: '1rem' }}>{parseNumberFromCommas(transferAmount || 0).toLocaleString()}đ</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--line)', paddingBottom: '8px', marginBottom: '8px' }}>
+                <span style={{ color: 'var(--muted)' }}>Phí chuyển tiền:</span>
+                <strong style={{ color: '#22c55e' }}>Miễn phí (0đ)</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--muted)' }}>Nội dung chuyển:</span>
+                <span style={{ color: 'var(--ink)', maxWidth: '60%', textAlign: 'right', overflowWrap: 'break-word', fontWeight: 500 }}>{transferNote || 'Chuyen tien'}</span>
+              </div>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--line)', paddingBottom: '8px', marginBottom: '8px' }}>
-              <span style={{ color: 'var(--muted)' }}>Số tiền chuyển:</span>
-              <strong style={{ color: 'var(--ink)', fontSize: '1rem' }}>{parseNumberFromCommas(transferAmount || 0).toLocaleString()}đ</strong>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--line)', paddingBottom: '8px', marginBottom: '8px' }}>
-              <span style={{ color: 'var(--muted)' }}>Phí chuyển tiền:</span>
-              <strong style={{ color: '#22c55e' }}>Miễn phí (0đ)</strong>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: 'var(--muted)' }}>Nội dung chuyển:</span>
-              <span style={{ color: 'var(--ink)', maxWidth: '60%', textAlign: 'right', overflowWrap: 'break-word', fontWeight: 500 }}>{transferNote || 'Chuyen tien'}</span>
-            </div>
-          </div>
 
-          {transferConfirmError && (
-            <div className="error-message" style={{ fontSize: '0.9rem', marginBottom: '16px' }}>
-              <Warning size={16} /> {transferConfirmError}
-            </div>
-          )}
+            {transferConfirmError && (
+              <div className="error-message" style={{ fontSize: '0.9rem', marginBottom: '16px' }}>
+                <Warning size={16} /> {transferConfirmError}
+              </div>
+            )}
 
-          <FormInput
-            label="Nhập mã PIN giao dịch (6 chữ số)"
-            id="transferPin"
-            type="password"
-            placeholder="Nhập mã PIN gồm 6 số"
-            value={transferPin}
-            onChange={(e) => setTransferPin(e.target.value.replace(/\D/g, ''))}
-            inputStyle={{ textAlign: 'center', letterSpacing: '8px', fontSize: '1.2rem' }}
-            maxLength="6"
-            required
-            disabled={isTransferConfirmLoading}
-          />
-
-          <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-            <button
-              className="secondary-button"
-              type="button"
-              style={{ flex: 1, minHeight: '46px' }}
-              onClick={() => {
-                setShowTransferConfirm(false)
-                setTransferPin('')
-                setTransferConfirmError('')
-              }}
+            <FormInput
+              label="Nhập mã PIN giao dịch (6 chữ số)"
+              id="transferPin"
+              type="password"
+              placeholder="Nhập mã PIN gồm 6 số"
+              value={transferPin}
+              onChange={(e) => setTransferPin(e.target.value.replace(/\D/g, ''))}
+              inputStyle={{ textAlign: 'center', letterSpacing: '8px', fontSize: '1.2rem' }}
+              maxLength="6"
+              required
               disabled={isTransferConfirmLoading}
-            >
-              Hủy bỏ
-            </button>
-            <button
-              className="auth-btn"
-              type="submit"
-              style={{ flex: 1, minHeight: '46px' }}
-              disabled={isTransferConfirmLoading}
-            >
-              {isTransferConfirmLoading ? <div className="btn-spinner" /> : 'Xác nhận chuyển'}
-            </button>
-          </div>
-        </form>
+            />
+
+            <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+              <button
+                className="secondary-button"
+                type="button"
+                style={{ flex: 1, minHeight: '46px' }}
+                onClick={() => {
+                  setShowTransferConfirm(false)
+                  setTransferPin('')
+                  setTransferConfirmError('')
+                }}
+                disabled={isTransferConfirmLoading}
+              >
+                Hủy bỏ
+              </button>
+              <button
+                className="auth-btn"
+                type="submit"
+                style={{ flex: 1, minHeight: '46px' }}
+                disabled={isTransferConfirmLoading}
+              >
+                Tiếp tục
+              </button>
+            </div>
+          </form>
+        ) : (
+          <form onSubmit={handleVerifyTransferOtp}>
+            <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: '0 0 20px', lineHeight: 1.5 }}>
+              Mã OTP xác thực đã được gửi qua SMS tới số <strong>{userProfile.phone}</strong>. Vui lòng nhập mã OTP để hoàn tất chuyển <strong>{parseNumberFromCommas(transferAmount || 0).toLocaleString()}đ</strong> tới <strong>{transferPhone}</strong>.
+            </p>
+
+            {transferConfirmError && (
+              <div className="error-message" style={{ fontSize: '0.9rem', marginBottom: '16px' }}>
+                <Warning size={16} /> {transferConfirmError}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', marginBottom: '16px' }}>
+              <div style={{ flex: 1 }}>
+                <FormInput
+                  label="Mã xác thực OTP (6 chữ số)"
+                  id="transferOtp"
+                  type="password"
+                  placeholder="Nhập mã OTP 6 số"
+                  value={transferOtp}
+                  onChange={(e) => setTransferOtp(e.target.value.replace(/\D/g, ''))}
+                  inputStyle={{ textAlign: 'center', letterSpacing: '8px', fontSize: '1.2rem' }}
+                  maxLength="6"
+                  required
+                  disabled={isTransferConfirmLoading}
+                  style={{ marginBottom: 0 }}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleResendTransferOtp}
+                disabled={transferCountdown > 0 || isTransferConfirmLoading}
+                className="secondary-button"
+                style={{
+                  height: '48px',
+                  whiteSpace: 'nowrap',
+                  padding: '0 16px',
+                  fontSize: '0.88rem',
+                  fontWeight: 700,
+                  borderRadius: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minWidth: '120px'
+                }}
+              >
+                {transferCountdown > 0 ? `Gửi lại (${transferCountdown}s)` : 'Gửi lại mã'}
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+              <button
+                className="secondary-button"
+                type="button"
+                style={{ flex: 1, minHeight: '46px' }}
+                onClick={() => { setTransferOtpStep(false); setTransferConfirmError('') }}
+                disabled={isTransferConfirmLoading}
+              >
+                Quay lại
+              </button>
+              <button
+                className="auth-btn"
+                type="submit"
+                style={{ flex: 1, minHeight: '46px' }}
+                disabled={isTransferConfirmLoading}
+              >
+                {isTransferConfirmLoading ? <div className="btn-spinner" /> : 'Xác nhận chuyển'}
+              </button>
+            </div>
+          </form>
+        )}
       </Modal>
 
       {/* Modal 7: QR CODE SCANNER */}
