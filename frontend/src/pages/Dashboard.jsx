@@ -1,35 +1,24 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import {
-  Wallet,
-  ArrowUpRight,
-  ArrowDownLeft,
-  QrCode,
-  ArrowsLeftRight,
-  TrendUp,
-  TrendDown,
-  Clock,
-  User,
-  Gear,
-  Bell,
-  DeviceMobile,
-  Laptop,
-  CheckCircle,
-  Warning,
-  UploadSimple,
-  Lock,
-  ShieldCheck,
-  Copy,
-  PencilSimple,
-  X,
-  SignOut,
-  CreditCard,
-  DownloadSimple
-} from '@phosphor-icons/react'
+import { Bell, Gear } from '@phosphor-icons/react'
 import Sidebar from '../components/Sidebar'
 import ToastAlert from '../components/ToastAlert'
-import Modal from '../components/Modal'
-import FormInput from '../components/FormInput'
+import OverviewPanel from './dashboard/OverviewPanel'
+import TransactionsPanel from './dashboard/TransactionsPanel'
+import MyQRPanel from './dashboard/MyQRPanel'
+import HistoryPanel from './dashboard/HistoryPanel'
+import BankPanel from './dashboard/BankPanel'
+import KycPanel from './dashboard/KycPanel'
+import ProfilePanel from './dashboard/ProfilePanel'
+import {
+  TopupModal,
+  WithdrawModal,
+  PasswordModal,
+  PinModal,
+  UnlinkBankModal,
+  TransferConfirmModal,
+  QrScannerModal
+} from '../components/modals'
 import './Dashboard.css'
 
 const calculateRemainingSeconds = (expiryTimeStr) => {
@@ -735,6 +724,7 @@ function Dashboard() {
     setTransferOtpStep(true)
     setTransferOtp('')
     setTransferCountdown(60)
+    showToast('Mã OTP xác thực chuyển tiền đã được gửi qua SMS!', 'warning')
   }
 
   // Handle Verify Transfer OTP Submission (Completes Transfer)
@@ -1165,1825 +1155,229 @@ function Dashboard() {
 
         {/* Dynamic Tab Content panels */}
         <div className="dashboard-content">
-          {/* TAB 1: OVERVIEW */}
           {activeTab === 'overview' && (
-            <div className="tab-panel">
-              {/* Wallet overview grid (Section 1) */}
-              <div className="wallet-overview-grid">
-                <div className="wallet-card">
-                  <div className="wallet-card-header">
-                    <span className="wallet-label">Số dư khả dụng</span>
-                    <div className="wallet-id">
-                      <span>ID: {wallet.walletId}</span>
-                    </div>
-                  </div>
-                  <div className="wallet-balance">
-                    <h2>{wallet.balance.toLocaleString()}đ</h2>
-                  </div>
-                  <div className="wallet-card-footer">
-                    <div>
-                      <span style={{ fontSize: '0.78rem', display: 'block', opacity: 0.8, marginBottom: '2px' }}>Đăng nhập gần nhất</span>
-                      <strong>{wallet.lastLogin}</strong>
-                    </div>
-                    <div className={`wallet-kyc ${userProfile.kycStatus === 'APPROVED' ? 'verified' : (userProfile.kycStatus === 'PENDING' ? 'pending' : 'rejected')}`}>
-                      {userProfile.kycStatus === 'APPROVED' && 'Đã xác thực KYC'}
-                      {userProfile.kycStatus === 'PENDING' && 'KYC Đang duyệt'}
-                      {userProfile.kycStatus === 'REJECTED' && 'KYC Bị Từ Chối'}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="quick-actions-panel">
-                  <h3>Giao dịch nhanh</h3>
-                  <div className="actions-grid">
-                    <button className="action-btn" onClick={() => {
-                      setModalType('topup')
-                      setTopupStep(1)
-                      setModalAmount('')
-                      setTopupPin('')
-                      setTopupError('')
-                    }}>
-                      <ArrowDownLeft size={22} weight="bold" />
-                      Nạp tiền
-                    </button>
-                    <button className="action-btn" onClick={() => {
-                      setModalType('withdraw')
-                      setWithdrawStep(1)
-                      setModalAmount('')
-                      setWithdrawPin('')
-                      setWithdrawError('')
-                    }}>
-                      <ArrowUpRight size={22} weight="bold" />
-                      Rút tiền
-                    </button>
-                    <button className="action-btn" onClick={() => setActiveTab('transactions')}>
-                      <ArrowsLeftRight size={22} weight="bold" />
-                      Chuyển tiền
-                    </button>
-                    <button className="action-btn" onClick={() => {
-                      setModalType('qrscanner')
-                      setQrFile(null)
-                      setScanSuccess(false)
-                    }}>
-                      <QrCode size={22} weight="bold" />
-                      Quét QR
-                    </button>
-                    <button className="action-btn" onClick={() => setActiveTab('myqr')}>
-                      <QrCode size={22} weight="bold" style={{ color: 'var(--accent)' }} />
-                      QR của tôi
-                    </button>
-                    <button className="action-btn" onClick={() => setActiveTab('bank')}>
-                      <CreditCard size={22} weight="bold" />
-                      Liên kết thẻ
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Statistics Cards (Section 2) */}
-              <div className="stats-grid">
-                <div className="stat-card">
-                  <div className="stat-icon blue">
-                    <Wallet size={24} weight="fill" />
-                  </div>
-                  <div className="stat-info">
-                    <span>Tổng số dư</span>
-                    <strong>{wallet.balance.toLocaleString()}đ</strong>
-                  </div>
-                </div>
-
-                <div className="stat-card">
-                  <div className="stat-icon red">
-                    <TrendDown size={24} weight="bold" />
-                  </div>
-                  <div className="stat-info">
-                    <span>Chi tiêu tháng</span>
-                    <strong>368.000đ</strong>
-                  </div>
-                </div>
-
-                <div className="stat-card">
-                  <div className="stat-icon green">
-                    <TrendUp size={24} weight="bold" />
-                  </div>
-                  <div className="stat-info">
-                    <span>Thu nhập tháng</span>
-                    <strong>2.500.000đ</strong>
-                  </div>
-                </div>
-
-                <div className="stat-card">
-                  <div className="stat-icon orange">
-                    <Clock size={24} weight="bold" />
-                  </div>
-                  <div className="stat-info">
-                    <span>Số giao dịch</span>
-                    <strong>{transactions.length}</strong>
-                  </div>
-                </div>
-              </div>
-
-              {/* Analytics charts (Section 6) */}
-              <div className="charts-grid">
-                {/* Chart 1: Donut Spending Category */}
-                <div className="chart-card">
-                  <h3>Chi tiêu theo nhóm</h3>
-                  <div className="donut-chart-wrapper">
-                    {/* SVG pie donut */}
-                    <svg width="120" height="120" viewBox="0 0 42 42">
-                      <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#f1f5f9" strokeWidth="4.2" />
-                      {/* Coffee Lab - Food (45%) */}
-                      <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="var(--accent)" strokeWidth="4.2" strokeDasharray="45 55" strokeDashoffset="25" />
-                      {/* Electricity - Utilities (35%) */}
-                      <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#f97316" strokeWidth="4.2" strokeDasharray="35 65" strokeDashoffset="80" />
-                      {/* Others (20%) */}
-                      <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#ef4444" strokeWidth="4.2" strokeDasharray="20 80" strokeDashoffset="115" />
-                    </svg>
-                    
-                    <div className="donut-legend">
-                      <div className="legend-item">
-                        <div className="legend-color" style={{ background: 'var(--accent)' }} />
-                        <span>Ăn uống & Cà phê (45%)</span>
-                      </div>
-                      <div className="legend-item">
-                        <div className="legend-color" style={{ background: '#f97316' }} />
-                        <span>Điện, nước & Sinh hoạt (35%)</span>
-                      </div>
-                      <div className="legend-item">
-                        <div className="legend-color" style={{ background: '#ef4444' }} />
-                        <span>Các chi tiêu khác (20%)</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Chart 2: Cash Flow Columns */}
-                <div className="chart-card">
-                  <h3>Dòng tiền hàng tháng</h3>
-                  <div className="chart-flow-bars">
-                    <div className="bar-column">
-                      <div className="bar-stack">
-                        <div className="bar-value" style={{ height: '70%', background: 'var(--accent)' }} />
-                      </div>
-                      <span className="bar-label">Th4</span>
-                    </div>
-                    <div className="bar-column">
-                      <div className="bar-stack">
-                        <div className="bar-value" style={{ height: '85%', background: 'var(--accent)' }} />
-                      </div>
-                      <span className="bar-label">Th5</span>
-                    </div>
-                    <div className="bar-column">
-                      <div className="bar-stack">
-                        <div className="bar-value" style={{ height: '55%', background: 'var(--accent)' }} />
-                      </div>
-                      <span className="bar-label">Th6</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Chart 3: Wallet Activity */}
-                <div className="chart-card" style={{ gridColumn: '1 / -1' }}>
-                  <h3>Hoạt động ví trong tuần</h3>
-                  <div className="chart-activity-timeline">
-                    <div className="activity-row">
-                      <div className="activity-label-group">
-                        <div className="activity-dot" style={{ background: 'var(--accent)' }} />
-                        <span>Chuyển tiền nội bộ</span>
-                      </div>
-                      <div className="activity-progress-bar">
-                        <div className="activity-progress-fill" style={{ width: '75%', background: 'var(--accent)' }} />
-                      </div>
-                      <strong style={{ fontStyle: 'normal' }}>75%</strong>
-                    </div>
-
-                    <div className="activity-row">
-                      <div className="activity-label-group">
-                        <div className="activity-dot" style={{ background: '#22c55e' }} />
-                        <span>Nạp tiền ngân hàng</span>
-                      </div>
-                      <div className="activity-progress-bar">
-                        <div className="activity-progress-fill" style={{ width: '50%', background: '#22c55e' }} />
-                      </div>
-                      <strong style={{ fontStyle: 'normal' }}>50%</strong>
-                    </div>
-
-                    <div className="activity-row">
-                      <div className="activity-label-group">
-                        <div className="activity-dot" style={{ background: '#f97316' }} />
-                        <span>Rút tiền về thẻ</span>
-                      </div>
-                      <div className="activity-progress-bar">
-                        <div className="activity-progress-fill" style={{ width: '25%', background: '#f97316' }} />
-                      </div>
-                      <strong style={{ fontStyle: 'normal' }}>25%</strong>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <OverviewPanel
+              wallet={wallet}
+              userProfile={userProfile}
+              transactions={transactions}
+              setModalType={setModalType}
+              setTopupStep={setTopupStep}
+              setWithdrawStep={setWithdrawStep}
+              setModalAmount={setModalAmount}
+              setTopupPin={setTopupPin}
+              setTopupError={setTopupError}
+              setActiveTab={setActiveTab}
+              setQrFile={setQrFile}
+              setScanSuccess={setScanSuccess}
+            />
           )}
 
-          {/* TAB 2: TRANSACTIONS & TRANSFER */}
           {activeTab === 'transactions' && (
-            <div className="tab-panel">
-              <div className="transfer-grid">
-                {/* Money Transfer Form (Section 4) */}
-                <div className="transfer-card">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
-                    <h3 style={{ margin: 0 }}>Chuyển tiền nhanh</h3>
-                    <span style={{ fontSize: '0.88rem', color: 'var(--muted)', fontWeight: 550 }}>
-                      Số dư khả dụng: <strong style={{ color: 'var(--accent)' }}>{wallet.balance.toLocaleString()}đ</strong>
-                    </span>
-                  </div>
-                  <form className="auth-form" onSubmit={handleTransfer}>
-                    {transferError && <div className="error-message" style={{ fontSize: '0.9rem' }}><Warning size={16} /> {transferError}</div>}
-
-                    <FormInput
-                      label="Số điện thoại nhận tiền"
-                      id="recPhone"
-                      type="tel"
-                      placeholder="Nhập SĐT người nhận"
-                      value={transferPhone}
-                      onChange={(e) => setTransferPhone(e.target.value)}
-                      disabled={transferLoading}
-                      icon={User}
-                    />
-
-                    <FormInput
-                      label="Số tiền chuyển (đ)"
-                      id="transAmt"
-                      type="text"
-                      placeholder="Ví dụ: 50,000"
-                      value={transferAmount}
-                      onChange={(e) => setTransferAmount(formatNumberWithCommas(e.target.value))}
-                      disabled={transferLoading}
-                      icon={Wallet}
-                    />
-
-                    <div className="input-group">
-                      <label className="input-label" htmlFor="transNote">Lời nhắn chuyển khoản</label>
-                      <textarea
-                        className="input-field"
-                        id="transNote"
-                        placeholder="Nhập nội dung chuyển tiền (không dấu)"
-                        value={transferNote}
-                        onChange={(e) => setTransferNote(e.target.value)}
-                        disabled={transferLoading}
-                        style={{ minHeight: '80px', borderRadius: '14px', paddingLeft: '16px', resize: 'vertical' }}
-                      />
-                    </div>
-
-                    <button className="auth-btn" type="submit" disabled={transferLoading}>
-                      {transferLoading ? <div className="btn-spinner" /> : 'Thực hiện chuyển khoản'}
-                    </button>
-                  </form>
-                </div>
-
-                {/* Info summary */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  <div className="recent-transactions-card" style={{ padding: '24px' }}>
-                    <h3 style={{ margin: '0 0 12px', fontSize: '1.05rem', fontWeight: 700 }}>Hạn mức giao dịch</h3>
-                    <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: '0 0 16px', lineHeight: 1.5 }}>
-                      Tài khoản của bạn đã được xác thực KYC thành công. Hạn mức giao dịch ví hiện tại của bạn là:
-                    </p>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.9rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
-                        <span>Hạn mức tối đa/giao dịch:</span>
-                        <strong>{limitPerTransaction.toLocaleString()}đ</strong>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
-                        <span>Hạn mức tối đa/ngày:</span>
-                        <strong>{limitPerDay.toLocaleString()}đ</strong>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span>Phí chuyển tiền nội bộ:</span>
-                        <strong style={{ color: '#22c55e' }}>Miễn phí 100%</strong>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Transactions List & Filters (Section 3) */}
-              <div className="recent-transactions-card">
-                <div className="section-header">
-                  <h2>Lịch sử giao dịch ví</h2>
-                  <div className="filters-row">
-                    <select
-                      className="filter-select"
-                      value={filterDate}
-                      onChange={(e) => setFilterDate(e.target.value)}
-                    >
-                      <option value="ALL">Tất cả thời gian</option>
-                      <option value="TODAY">Hôm nay</option>
-                      <option value="WEEK">7 ngày gần đây</option>
-                      <option value="MONTH">Tháng này</option>
-                    </select>
-
-                    <select
-                      className="filter-select"
-                      value={filterType}
-                      onChange={(e) => setFilterType(e.target.value)}
-                    >
-                      <option value="ALL">Mọi loại giao dịch</option>
-                      <option value="TRANSFER">Chuyển khoản</option>
-                      <option value="TOPUP">Nạp tiền</option>
-                      <option value="WITHDRAW">Rút tiền</option>
-                    </select>
-
-                    <select
-                      className="filter-select"
-                      value={filterStatus}
-                      onChange={(e) => setFilterStatus(e.target.value)}
-                    >
-                      <option value="ALL">Tất cả trạng thái</option>
-                      <option value="SUCCESS">Thành công</option>
-                      <option value="PENDING">Chờ xử lý</option>
-                      <option value="FAILED">Thất bại</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="transaction-table-wrapper">
-                  <table className="transaction-table">
-                    <thead>
-                      <tr>
-                        <th>Người nhận / Nguồn</th>
-                        <th>Loại</th>
-                        <th>Thời gian</th>
-                        <th>Trạng thái</th>
-                        <th>Số tiền</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredTransactions.length === 0 ? (
-                        <tr>
-                          <td colSpan="5" className="no-data-row">
-                            Không có giao dịch nào khớp với bộ lọc tìm kiếm.
-                          </td>
-                        </tr>
-                      ) : (
-                        filteredTransactions.map(tx => (
-                          <tr key={tx.id}>
-                            <td>
-                              <div className="recipient-cell">
-                                <div className="recipient-avatar">
-                                  {tx.recipient.substring(0, 1).toUpperCase()}
-                                </div>
-                                {tx.recipient}
-                              </div>
-                            </td>
-                            <td>
-                              <span style={{ fontSize: '0.85rem', fontWeight: 650, color: 'var(--muted)' }}>
-                                {tx.type === 'TRANSFER' && 'Chuyển tiền'}
-                                {tx.type === 'TOPUP' && 'Nạp ví'}
-                                {tx.type === 'WITHDRAW' && 'Rút ví'}
-                              </span>
-                            </td>
-                            <td style={{ color: 'var(--muted)', fontSize: '0.88rem' }}>{tx.date}</td>
-                            <td>
-                              <span className={`status-badge ${tx.status === 'SUCCESS' ? 'success' : (tx.status === 'PENDING' ? 'pending' : 'failed')}`}>
-                                {tx.status === 'SUCCESS' && 'Thành công'}
-                                {tx.status === 'PENDING' && 'Chờ xử lý'}
-                                {tx.status === 'FAILED' && 'Thất bại'}
-                              </span>
-                            </td>
-                            <td>
-                              <span className={`transaction-amount ${tx.amount > 0 ? 'positive' : 'negative'}`}>
-                                {tx.amount > 0 ? '+' : ''}{formatCurrency(tx.amount)}
-                              </span>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
+            <TransactionsPanel
+              handleTransfer={handleTransfer}
+              transferError={transferError}
+              transferPhone={transferPhone}
+              setTransferPhone={setTransferPhone}
+              transferAmount={transferAmount}
+              setTransferAmount={setTransferAmount}
+              transferNote={transferNote}
+              setTransferNote={setTransferNote}
+              transferLoading={transferLoading}
+              wallet={wallet}
+              limitPerTransaction={limitPerTransaction}
+              limitPerDay={limitPerDay}
+              filterDate={filterDate}
+              setFilterDate={setFilterDate}
+              filterType={filterType}
+              setFilterType={setFilterType}
+              filterStatus={filterStatus}
+              setFilterStatus={setFilterStatus}
+              filteredTransactions={filteredTransactions}
+              formatCurrency={formatCurrency}
+              formatNumberWithCommas={formatNumberWithCommas}
+              handleExportCSV={handleExportCSV}
+            />
           )}
 
-          {/* TAB: MY QR */}
           {activeTab === 'myqr' && (
-            <div className="tab-panel">
-              <div style={{ maxWidth: '440px', margin: '0 auto', width: '100%' }}>
-                <div 
-                  className="profile-card" 
-                  style={{ 
-                    padding: '30px', 
-                    borderRadius: '24px', 
-                    boxShadow: '0 20px 40px rgba(0, 106, 255, 0.08)',
-                    background: 'var(--surface)',
-                    border: '1px solid var(--line)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center'
-                  }}
-                >
-                  <h3 style={{ margin: '0 0 8px', fontSize: '1.25rem', fontWeight: 700, color: 'var(--ink)' }}>QR Nhận tiền của tôi</h3>
-                  <p style={{ color: 'var(--muted)', fontSize: '0.82rem', margin: '0 0 24px', textAlign: 'center', lineHeight: 1.4 }}>
-                    Đưa mã này cho người chuyển để nhận tiền nhanh liên ngân hàng 24/7 qua ví VT Pay.
-                  </p>
-
-                  {/* QR Card Container */}
-                  <div 
-                    id="myqr-card-display"
-                    style={{
-                      background: 'linear-gradient(135deg, var(--accent) 0%, #0c4a6e 100%)',
-                      borderRadius: '20px',
-                      padding: '24px',
-                      color: '#ffffff',
-                      width: '100%',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      boxShadow: '0 15px 30px rgba(0, 106, 255, 0.15)',
-                      position: 'relative',
-                      overflow: 'hidden'
-                    }}
-                  >
-                    <div style={{ position: 'absolute', top: '-40px', right: '-40px', width: '120px', height: '120px', background: 'radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)', borderRadius: '50%' }} />
-                    
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', zIndex: 1 }}>
-                      <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(255, 255, 255, 0.2)', display: 'grid', placeItems: 'center', fontWeight: 'bold', fontSize: '0.8rem' }}>VT</div>
-                      <strong style={{ fontSize: '1.05rem', letterSpacing: '0.5px' }}>VT Pay Receive</strong>
-                    </div>
-
-                    <div style={{ background: '#ffffff', borderRadius: '16px', padding: '16px', display: 'grid', placeItems: 'center', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', zIndex: 1, width: '220px', height: '220px', margin: '0 auto 20px' }}>
-                      <img 
-                        src="/vtpay_qr_code.jpg" 
-                        alt="Mã QR Nhận tiền VT Pay" 
-                        style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '8px' }} 
-                      />
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1, textAlign: 'center' }}>
-                      <strong style={{ fontSize: '1.15rem', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '4px' }}>{userProfile.fullName}</strong>
-                      <span style={{ fontSize: '0.85rem', opacity: 0.85, fontFamily: 'monospace' }}>Ví VT Pay: {wallet.walletId}</span>
-                    </div>
-                  </div>
-
-                  <button
-                    className="auth-btn"
-                    style={{ width: '100%', minHeight: '46px', marginTop: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
-                    onClick={handleDownloadQR}
-                  >
-                    <DownloadSimple size={20} weight="bold" />
-                    Tải hình ảnh mã QR
-                  </button>
-                </div>
-              </div>
-            </div>
+            <MyQRPanel
+              userProfile={userProfile}
+              wallet={wallet}
+              handleDownloadQR={handleDownloadQR}
+            />
           )}
 
-          {/* TAB: HISTORY */}
           {activeTab === 'history' && (
-            <div className="tab-panel">
-              {/* Summary Cards Row */}
-              <div className="stats-grid" style={{ marginBottom: '24px' }}>
-                <div className="stat-card">
-                  <div className="stat-icon blue">
-                    <Wallet size={24} weight="fill" />
-                  </div>
-                  <div className="stat-info">
-                    <span>Số dư hiện tại</span>
-                    <strong>{wallet.balance.toLocaleString()}đ</strong>
-                  </div>
-                </div>
-
-                <div className="stat-card">
-                  <div className="stat-icon green">
-                    <TrendUp size={24} weight="bold" />
-                  </div>
-                  <div className="stat-info">
-                    <span>Tổng nhận (Lọc)</span>
-                    <strong>{filteredTransactions.filter(tx => tx.amount > 0 && tx.status === 'SUCCESS').reduce((sum, tx) => sum + tx.amount, 0).toLocaleString()}đ</strong>
-                  </div>
-                </div>
-
-                <div className="stat-card">
-                  <div className="stat-icon red">
-                    <TrendDown size={24} weight="bold" />
-                  </div>
-                  <div className="stat-info">
-                    <span>Tổng chi (Lọc)</span>
-                    <strong>{filteredTransactions.filter(tx => tx.amount < 0 && tx.status === 'SUCCESS').reduce((sum, tx) => sum + Math.abs(tx.amount), 0).toLocaleString()}đ</strong>
-                  </div>
-                </div>
-
-                <div className="stat-card">
-                  <div className="stat-icon orange">
-                    <Clock size={24} weight="bold" />
-                  </div>
-                  <div className="stat-info">
-                    <span>Số giao dịch (Lọc)</span>
-                    <strong>{filteredTransactions.length}</strong>
-                  </div>
-                </div>
-              </div>
-
-              {/* Transactions List & Filters */}
-              <div className="recent-transactions-card">
-                <div className="section-header" style={{ display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'stretch' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-                    <h2 style={{ margin: 0 }}>Lịch sử giao dịch ví</h2>
-                    <button
-                      className="auth-btn"
-                      style={{ minHeight: '38px', padding: '0 16px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}
-                      onClick={handleExportCSV}
-                    >
-                      <DownloadSimple size={18} weight="bold" />
-                      Xuất file CSV
-                    </button>
-                  </div>
-
-                  <div className="filters-row" style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
-                    <input
-                      type="text"
-                      className="filter-search-input"
-                      placeholder="Tìm kiếm theo mã GD, người nhận, số tiền..."
-                      value={filterSearch}
-                      onChange={(e) => setFilterSearch(e.target.value)}
-                    />
-
-                    <select
-                      className="filter-select"
-                      value={filterDate}
-                      onChange={(e) => setFilterDate(e.target.value)}
-                    >
-                      <option value="ALL">Tất cả thời gian</option>
-                      <option value="TODAY">Hôm nay</option>
-                      <option value="WEEK">7 ngày gần đây</option>
-                      <option value="MONTH">Tháng này</option>
-                    </select>
-
-                    <select
-                      className="filter-select"
-                      value={filterType}
-                      onChange={(e) => setFilterType(e.target.value)}
-                    >
-                      <option value="ALL">Mọi loại giao dịch</option>
-                      <option value="TRANSFER">Chuyển khoản</option>
-                      <option value="TOPUP">Nạp tiền</option>
-                      <option value="WITHDRAW">Rút tiền</option>
-                    </select>
-
-                    <select
-                      className="filter-select"
-                      value={filterStatus}
-                      onChange={(e) => setFilterStatus(e.target.value)}
-                    >
-                      <option value="ALL">Tất cả trạng thái</option>
-                      <option value="SUCCESS">Thành công</option>
-                      <option value="PENDING">Chờ xử lý</option>
-                      <option value="FAILED">Thất bại</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="transaction-table-wrapper">
-                  <table className="transaction-table">
-                    <thead>
-                      <tr>
-                        <th>Mã GD</th>
-                        <th>Người nhận / Nguồn</th>
-                        <th>Loại</th>
-                        <th>Thời gian</th>
-                        <th>Trạng thái</th>
-                        <th>Số tiền</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredTransactions.length === 0 ? (
-                        <tr>
-                          <td colSpan="6" className="no-data-row">
-                            Không có giao dịch nào khớp với bộ lọc tìm kiếm.
-                          </td>
-                        </tr>
-                      ) : (
-                        filteredTransactions.map(tx => (
-                          <tr key={tx.id}>
-                            <td style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: 'var(--muted)' }}>{tx.id}</td>
-                            <td>
-                              <div className="recipient-cell">
-                                <div className="recipient-avatar">
-                                  {tx.recipient.substring(0, 1).toUpperCase()}
-                                </div>
-                                {tx.recipient}
-                              </div>
-                            </td>
-                            <td>
-                              <span style={{ fontSize: '0.85rem', fontWeight: 650, color: 'var(--muted)' }}>
-                                {tx.type === 'TRANSFER' && 'Chuyển tiền'}
-                                {tx.type === 'TOPUP' && 'Nạp ví'}
-                                {tx.type === 'WITHDRAW' && 'Rút ví'}
-                              </span>
-                            </td>
-                            <td style={{ color: 'var(--muted)', fontSize: '0.88rem' }}>{tx.date}</td>
-                            <td>
-                              <span className={`status-badge ${tx.status === 'SUCCESS' ? 'success' : (tx.status === 'PENDING' ? 'pending' : 'failed')}`}>
-                                {tx.status === 'SUCCESS' && 'Thành công'}
-                                {tx.status === 'PENDING' && 'Chờ xử lý'}
-                                {tx.status === 'FAILED' && 'Thất bại'}
-                              </span>
-                            </td>
-                            <td>
-                              <span className={`transaction-amount ${tx.amount > 0 ? 'positive' : 'negative'}`}>
-                                {tx.amount > 0 ? '+' : ''}{formatCurrency(tx.amount)}
-                              </span>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
+            <HistoryPanel
+              wallet={wallet}
+              filteredTransactions={filteredTransactions}
+              filterSearch={filterSearch}
+              setFilterSearch={setFilterSearch}
+              filterDate={filterDate}
+              setFilterDate={setFilterDate}
+              filterType={filterType}
+              setFilterType={setFilterType}
+              filterStatus={filterStatus}
+              setFilterStatus={setFilterStatus}
+              handleExportCSV={handleExportCSV}
+              formatCurrency={formatCurrency}
+            />
           )}
 
-          {/* TAB 3: LINK BANK */}
           {activeTab === 'bank' && (
-            <div className="tab-panel">
-              <div className="transfer-grid">
-                {/* Form or Step Column */}
-                <div className="transfer-card">
-                  {linkingStep === 1 ? (
-                    <>
-                      <h3>Liên kết tài khoản mới</h3>
-                      <p style={{ color: 'var(--muted)', fontSize: '0.88rem', marginBottom: '24px', lineHeight: 1.5 }}>
-                        Chọn ngân hàng đối tác và điền thông tin tài khoản cá nhân của bạn để thực hiện liên kết nạp rút.
-                      </p>
-
-                      {linkingError && (
-                        <div className="error-message" style={{ fontSize: '0.9rem', marginBottom: '16px' }}>
-                          <Warning size={16} /> {linkingError}
-                        </div>
-                      )}
-
-                      <form className="auth-form" onSubmit={handleLinkBankSubmit}>
-                        <div className="input-group">
-                          <label className="input-label">Chọn ngân hàng đối tác</label>
-                          <div className="bank-selection-grid">
-                            {[
-                              { code: 'VCB', name: 'Vietcombank', color: '#10b981' },
-                              { code: 'TCB', name: 'Techcombank', color: '#ef4444' },
-                              { code: 'BIDV', name: 'BIDV', color: '#3b82f6' },
-                              { code: 'ACB', name: 'ACB', color: '#0ea5e9' },
-                              { code: 'TPB', name: 'TPBank', color: '#a855f7' }
-                            ].map(b => (
-                              <button
-                                key={b.code}
-                                type="button"
-                                className={`bank-select-btn ${selectedBank === b.code ? 'selected' : ''}`}
-                                onClick={() => setSelectedBank(b.code)}
-                                style={{
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  padding: '12px 6px',
-                                  borderRadius: '12px',
-                                  border: selectedBank === b.code ? `2px solid ${b.color}` : '1.5px solid var(--line)',
-                                  background: selectedBank === b.code ? `${b.color}15` : 'var(--surface)',
-                                  cursor: 'pointer',
-                                  transition: 'all 0.2s',
-                                  fontWeight: 700,
-                                  fontSize: '0.82rem',
-                                  color: selectedBank === b.code ? b.color : 'var(--ink)'
-                                }}
-                              >
-                                <span style={{ fontSize: '1rem', fontWeight: 900, letterSpacing: '0.5px' }}>{b.code}</span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        <FormInput
-                          label="Số tài khoản ngân hàng"
-                          id="bankAccountNo"
-                          type="text"
-                          placeholder="Nhập số tài khoản"
-                          value={bankAccountNo}
-                          onChange={(e) => setBankAccountNo(e.target.value.replace(/\D/g, ''))}
-                          disabled={isLinkingLoading}
-                        />
-
-                        <FormInput
-                          label="Họ và tên chủ tài khoản (Không dấu)"
-                          id="bankCardHolder"
-                          type="text"
-                          value={userProfile.fullName.toUpperCase()}
-                          disabled={true}
-                          style={{ opacity: 0.8 }}
-                        />
-
-                        <FormInput
-                          label="Số điện thoại đăng ký ngân hàng"
-                          id="bankPhone"
-                          type="tel"
-                          placeholder="Nhập số điện thoại"
-                          value={bankPhone}
-                          onChange={(e) => setBankPhone(e.target.value)}
-                          disabled={isLinkingLoading}
-                        />
-
-                        <button className="auth-btn" type="submit" disabled={isLinkingLoading}>
-                          {isLinkingLoading ? <div className="btn-spinner" /> : 'Liên kết ngân hàng'}
-                        </button>
-                      </form>
-                    </>
-                  ) : (
-                    <>
-                      <h3>Xác thực liên kết</h3>
-                      <p style={{ color: 'var(--muted)', fontSize: '0.88rem', marginBottom: '24px', lineHeight: 1.5 }}>
-                        Nhập mã xác thực OTP đã được gửi tới số điện thoại <strong>{bankPhone}</strong> để hoàn tất liên kết tài khoản ngân hàng.
-                      </p>
-
-                      {linkingError && (
-                        <div className="error-message" style={{ fontSize: '0.9rem', marginBottom: '16px' }}>
-                          <Warning size={16} /> {linkingError}
-                        </div>
-                      )}
-
-                      <form className="auth-form" onSubmit={handleVerifyBankOtp}>
-                        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', marginBottom: '16px' }}>
-                          <div style={{ flex: 1 }}>
-                            <FormInput
-                              label="Nhập mã xác thực OTP"
-                              id="bankOtp"
-                              type="password"
-                              placeholder="Nhập OTP 6 số"
-                              value={bankOtp}
-                              onChange={(e) => setBankOtp(e.target.value.replace(/\D/g, ''))}
-                              inputStyle={{ textAlign: 'center', letterSpacing: '8px', fontSize: '1.2rem' }}
-                              maxLength="6"
-                              disabled={isLinkingLoading}
-                              style={{ marginBottom: 0 }}
-                            />
-                          </div>
-                          <button
-                            type="button"
-                            onClick={handleResendLinkingOtp}
-                            disabled={linkingCountdown > 0 || isLinkingLoading}
-                            className="secondary-button"
-                            style={{
-                              height: '48px',
-                              whiteSpace: 'nowrap',
-                              padding: '0 16px',
-                              fontSize: '0.88rem',
-                              fontWeight: 700,
-                              borderRadius: '14px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              minWidth: '120px'
-                            }}
-                          >
-                            {linkingCountdown > 0 ? `Gửi lại (${linkingCountdown}s)` : 'Gửi mã'}
-                          </button>
-                        </div>
-
-                        <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
-                          <button
-                            className="secondary-button"
-                            type="button"
-                            style={{ flex: 1, minHeight: '48px', fontWeight: 700 }}
-                            onClick={() => setLinkingStep(1)}
-                            disabled={isLinkingLoading}
-                          >
-                            Quay lại
-                          </button>
-                          <button
-                            className="auth-btn"
-                            type="submit"
-                            style={{ flex: 1, minHeight: '48px' }}
-                            disabled={isLinkingLoading}
-                          >
-                            {isLinkingLoading ? <div className="btn-spinner" /> : 'Xác thực OTP'}
-                          </button>
-                        </div>
-                      </form>
-                    </>
-                  )}
-                </div>
-
-                {/* Linked Cards Column */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  <div className="recent-transactions-card" style={{ padding: '24px' }}>
-                    <h3 style={{ margin: '0 0 16px', fontSize: '1.05rem', fontWeight: 700 }}>Ngân hàng liên kết của bạn</h3>
-                    
-                    {linkedBanks.length === 0 ? (
-                      <div style={{ padding: '32px 16px', textAlign: 'center', border: '1.5px dashed var(--line)', borderRadius: '16px' }}>
-                        <p style={{ color: 'var(--muted)', fontSize: '0.9rem', margin: 0 }}>Bạn chưa liên kết tài khoản ngân hàng nào.</p>
-                      </div>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        {linkedBanks.map(card => {
-                          const gradients = {
-                            VCB: 'linear-gradient(135deg, #059669 0%, #064e3b 100%)',
-                            TCB: 'linear-gradient(135deg, #dc2626 0%, #7f1d1d 100%)',
-                            BIDV: 'linear-gradient(135deg, #2563eb 0%, #1e3a8a 100%)',
-                            ACB: 'linear-gradient(135deg, #0284c7 0%, #0c4a6e 100%)',
-                            TPB: 'linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%)'
-                          }
-                          const bg = gradients[card.logo] || 'linear-gradient(135deg, #64748b 0%, #334155 100%)'
-                          return (
-                            <div
-                              key={card.id}
-                              style={{
-                                background: bg,
-                                borderRadius: '16px',
-                                padding: '20px',
-                                color: '#ffffff',
-                                position: 'relative',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                justifyContent: 'space-between',
-                                minHeight: '160px',
-                                boxShadow: '0 10px 20px rgba(0, 0, 0, 0.05)',
-                                overflow: 'hidden'
-                              }}
-                            >
-                              {/* Overlay logo badge */}
-                              <div style={{ position: 'absolute', top: 0, right: 0, opacity: 0.1, fontSize: '6rem', fontWeight: 900, lineHeight: 1, pointerEvents: 'none' }}>
-                                {card.logo}
-                              </div>
-
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', zIndex: 1 }}>
-                                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                  <strong style={{ fontSize: '1.1rem', letterSpacing: '0.5px' }}>{card.bankName}</strong>
-                                  <span style={{ fontSize: '0.72rem', opacity: 0.8 }}>Thẻ nội bộ Debit</span>
-                                </div>
-                                <span style={{ background: 'rgba(255, 255, 255, 0.2)', padding: '4px 8px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: 700 }}>
-                                  ACTIVE
-                                </span>
-                              </div>
-
-                              <div style={{ fontSize: '1.25rem', fontFamily: 'monospace', letterSpacing: '2.5px', margin: '20px 0 10px', zIndex: 1 }}>
-                                **** **** **** {card.accountNumber.slice(-4)}
-                              </div>
-
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', zIndex: 1 }}>
-                                <div>
-                                  <span style={{ fontSize: '0.68rem', display: 'block', opacity: 0.8, textTransform: 'uppercase', marginBottom: '2px' }}>Chủ thẻ</span>
-                                  <strong style={{ fontSize: '0.88rem' }}>{card.cardHolder}</strong>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => handleUnlinkBank(card)}
-                                  style={{
-                                    border: 'none',
-                                    background: 'rgba(255, 255, 255, 0.25)',
-                                    color: '#ffffff',
-                                    padding: '6px 12px',
-                                    borderRadius: '8px',
-                                    fontSize: '0.76rem',
-                                    fontWeight: 700,
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s'
-                                  }}
-                                  onMouseEnter={(e) => e.target.style.background = 'rgba(239, 68, 68, 0.8)'}
-                                  onMouseLeave={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.25)'}
-                                >
-                                  Hủy liên kết
-                                </button>
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
+            <BankPanel
+              linkingStep={linkingStep}
+              linkingError={linkingError}
+              bankPhone={bankPhone}
+              setBankPhone={setBankPhone}
+              bankAccountNo={bankAccountNo}
+              setBankAccountNo={setBankAccountNo}
+              selectedBank={selectedBank}
+              setSelectedBank={setSelectedBank}
+              isLinkingLoading={isLinkingLoading}
+              handleLinkBankSubmit={handleLinkBankSubmit}
+              handleVerifyBankOtp={handleVerifyBankOtp}
+              bankOtp={bankOtp}
+              setBankOtp={setBankOtp}
+              handleResendLinkingOtp={handleResendLinkingOtp}
+              setLinkingStep={setLinkingStep}
+              linkedBanks={linkedBanks}
+              handleUnlinkBank={handleUnlinkBank}
+              userProfile={userProfile}
+            />
           )}
 
-          {/* TAB 4: KYC VERIFICATION (Section 5) */}
           {activeTab === 'kyc' && (
-            <div className="tab-panel">
-              <div className="kyc-card">
-                {/* Banner Status Display */}
-                {userProfile.kycStatus === 'APPROVED' && (
-                  <div className="kyc-status-banner approved">
-                    <div className="kyc-banner-icon">
-                      <CheckCircle size={28} weight="fill" />
-                    </div>
-                    <div className="kyc-banner-content">
-                      <h4>Tài khoản ví đã KYC thành công</h4>
-                      <p>
-                        Thông tin của bạn đã được bộ phận thẩm định phê duyệt thành công. Hạn mức giao dịch
-                        tài khoản của bạn đã được nâng lên tối đa.
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {userProfile.kycStatus === 'PENDING' && (
-                  <div className="kyc-status-banner pending">
-                    <div className="kyc-banner-icon">
-                      <Clock size={28} weight="bold" />
-                    </div>
-                    <div className="kyc-banner-content">
-                      <h4>Hồ sơ KYC đang chờ duyệt</h4>
-                      <p>
-                        Yêu cầu xác thực tài khoản của bạn đang được bộ phận quản trị viên VT Pay kiểm tra.
-                        Thời gian phản hồi thông thường trong vòng 24 giờ.
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {userProfile.kycStatus === 'REJECTED' && (
-                  <div className="kyc-status-banner rejected">
-                    <div className="kyc-banner-icon">
-                      <Warning size={28} weight="fill" />
-                    </div>
-                    <div className="kyc-banner-content">
-                      <h4>Yêu cầu KYC bị từ chối</h4>
-                      <p>
-                        Hình ảnh tài liệu nhận dạng của bạn không đạt yêu cầu (mờ, mất góc hoặc không rõ mặt).
-                        Vui lòng tải lên và gửi lại hồ sơ ảnh mới.
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: '0 0 16px', color: 'var(--ink)' }}>Tải tài liệu xác thực (Simulated upload)</h3>
-                <p style={{ color: 'var(--muted)', fontSize: '0.9rem', lineHeight: 1.5, margin: '0 0 24px' }}>
-                  Vui lòng tải lên ảnh chụp hai mặt của Căn cước công dân và một tấm ảnh chụp chân dung chân thực của bạn.
-                </p>
-
-                <div className="upload-zone-container">
-                  {/* Front image card */}
-                  <div className="upload-card" onClick={() => triggerKycUpload('front')}>
-                    {kycFiles.front ? (
-                      <img className="upload-preview" src={kycFiles.front} alt="Mặt trước CCCD" />
-                    ) : (
-                      <>
-                        <UploadSimple size={32} />
-                        <span>Mặt trước CCCD</span>
-                        <small>Định dạng JPG, PNG tối đa 5MB</small>
-                      </>
-                    )}
-                  </div>
-
-                  {/* Back image card */}
-                  <div className="upload-card" onClick={() => triggerKycUpload('back')}>
-                    {kycFiles.back ? (
-                      <img className="upload-preview" src={kycFiles.back} alt="Mặt sau CCCD" />
-                    ) : (
-                      <>
-                        <UploadSimple size={32} />
-                        <span>Mặt sau CCCD</span>
-                        <small>Yêu cầu ảnh chụp rõ nét, không lóa sáng</small>
-                      </>
-                    )}
-                  </div>
-
-                  {/* Selfie image card */}
-                  <div className="upload-card" onClick={() => triggerKycUpload('selfie')}>
-                    {kycFiles.selfie ? (
-                      <img className="upload-preview" src={kycFiles.selfie} alt="Selfie chân dung" />
-                    ) : (
-                      <>
-                        <UploadSimple size={32} />
-                        <span>Ảnh chân dung (Selfie)</span>
-                        <small>Nhìn thẳng gương mặt, không đeo kính râm</small>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'flex-end' }}>
-                  <button
-                    className="auth-btn"
-                    style={{ maxWidth: '240px' }}
-                    onClick={handleKycSubmit}
-                    disabled={userProfile.kycStatus === 'PENDING' || userProfile.kycStatus === 'APPROVED'}
-                  >
-                    Gửi yêu cầu phê duyệt KYC
-                  </button>
-                </div>
-              </div>
-            </div>
+            <KycPanel
+              userProfile={userProfile}
+              kycFiles={kycFiles}
+              triggerKycUpload={triggerKycUpload}
+              handleKycSubmit={handleKycSubmit}
+            />
           )}
 
-          {/* TAB 4: SECURITY & PROFILE (Sections 7 & 8) */}
           {activeTab === 'profile' && (
-            <div className="tab-panel">
-              <div className="profile-container-grid">
-                
-                {/* 1. Cover Profile Header widget */}
-                <div className="profile-header-cover">
-                  <div className="profile-header-details">
-                    <div className="profile-header-avatar">
-                      {userProfile.fullName.split(' ').pop().substring(0, 2).toUpperCase()}
-                    </div>
-                    <div className="profile-header-info">
-                      <h2>{userProfile.fullName}</h2>
-                      <div className="profile-badge-row">
-                        <span className="badge-kyc-tier">
-                          <ShieldCheck size={14} weight="bold" />
-                          Đã xác thực danh tính - Cấp 2
-                        </span>
-                        <span className="badge-vip-tier">
-                          Thành viên {userProfile.vipLevel === 'Gold' ? 'Vàng' : userProfile.vipLevel}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="profile-wallet-copy-box">
-                    <span>Số tài khoản ví VT Pay</span>
-                    <div className="copy-row-action">
-                      <strong>{wallet.walletId}</strong>
-                      <button 
-                        type="button"
-                        className="copy-icon-btn" 
-                        onClick={() => {
-                          navigator.clipboard.writeText(wallet.walletId.toString());
-                          showToast('Đã copy số tài khoản ví vào bộ nhớ tạm!');
-                        }}
-                        title="Copy số ví"
-                      >
-                        <Copy size={16} weight="bold" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 2. Left Column: Personal Profile Details Form */}
-                <div className="profile-card">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                    <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', fontWeight: 700, margin: 0 }}>
-                      Thông tin tài khoản ví
-                    </h3>
-                    {!isEditMode ? (
-                      <button 
-                        type="button"
-                        className="secondary-button" 
-                        style={{ height: '36px', padding: '0 12px', fontSize: '0.82rem', gap: '6px', fontWeight: 700 }}
-                        onClick={() => setIsEditMode(true)}
-                      >
-                        <PencilSimple size={14} /> Chỉnh sửa
-                      </button>
-                    ) : (
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button 
-                          type="button"
-                          className="secondary-button" 
-                          style={{ height: '36px', padding: '0 12px', fontSize: '0.82rem', gap: '4px', fontWeight: 700 }}
-                          onClick={handleCancelProfileEdit}
-                        >
-                          <X size={14} /> Hủy
-                        </button>
-                        <button 
-                          type="button"
-                          className="auth-btn" 
-                          style={{ height: '36px', padding: '0 12px', fontSize: '0.82rem', minWidth: 'auto', fontWeight: 700 }}
-                          onClick={handleSaveProfile}
-                        >
-                          Lưu
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  <form className="auth-form" style={{ gap: '20px' }} onSubmit={handleSaveProfile}>
-                    <div className="profile-info-grid">
-                      <div className="profile-field">
-                        <label>Họ và tên (Chính chủ)</label>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
-                          <span style={{ color: 'var(--ink)' }}>{userProfile.fullName}</span>
-                          <Lock size={14} style={{ color: 'var(--muted)', opacity: 0.6 }} title="Thông tin đã KYC không thể chỉnh sửa" />
-                        </div>
-                      </div>
-
-                      <div className="profile-field">
-                        <label>Số điện thoại ví</label>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
-                          <span style={{ color: 'var(--ink)' }}>{userProfile.phone}</span>
-                          <Lock size={14} style={{ color: 'var(--muted)', opacity: 0.6 }} title="Thông tin đã KYC không thể chỉnh sửa" />
-                        </div>
-                      </div>
-
-                      <div className="profile-field">
-                        <label>Số CCCD / Hộ chiếu</label>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
-                          <span style={{ color: 'var(--ink)' }}>{userProfile.citizenId.substring(0, 4)}********</span>
-                          <Lock size={14} style={{ color: 'var(--muted)', opacity: 0.6 }} title="Thông tin đã KYC không thể chỉnh sửa" />
-                        </div>
-                      </div>
-
-                      <div className="profile-field">
-                        <label>Địa chỉ Email</label>
-                        {isEditMode ? (
-                          <input 
-                            type="email" 
-                            className="profile-field-edit-input" 
-                            value={editProfile.email}
-                            onChange={(e) => setEditProfile({ ...editProfile, email: e.target.value })}
-                          />
-                        ) : (
-                          <span style={{ marginTop: '6px' }}>{userProfile.email}</span>
-                        )}
-                      </div>
-
-                      <div className="profile-field">
-                        <label>Ngày sinh</label>
-                        {isEditMode ? (
-                          <input 
-                            type="date" 
-                            className="profile-field-edit-input" 
-                            value={editProfile.dob}
-                            onChange={(e) => setEditProfile({ ...editProfile, dob: e.target.value })}
-                          />
-                        ) : (
-                          <span style={{ marginTop: '6px' }}>{userProfile.dob}</span>
-                        )}
-                      </div>
-
-                      <div className="profile-field">
-                        <label>Giới tính</label>
-                        {isEditMode ? (
-                          <select 
-                            className="profile-field-edit-input profile-field-select" 
-                            value={editProfile.gender}
-                            onChange={(e) => setEditProfile({ ...editProfile, gender: e.target.value })}
-                          >
-                            <option value="Nam">Nam</option>
-                            <option value="Nữ">Nữ</option>
-                            <option value="Khác">Khác</option>
-                          </select>
-                        ) : (
-                          <span style={{ marginTop: '6px' }}>{userProfile.gender}</span>
-                        )}
-                      </div>
-
-                      <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
-                        <label>Địa chỉ thường trú</label>
-                        {isEditMode ? (
-                          <input 
-                            type="text" 
-                            className="profile-field-edit-input" 
-                            value={editProfile.address}
-                            onChange={(e) => setEditProfile({ ...editProfile, address: e.target.value })}
-                          />
-                        ) : (
-                          <span style={{ marginTop: '6px' }}>{userProfile.address}</span>
-                        )}
-                      </div>
-
-                      <div className="profile-field" style={{ gridColumn: '1 / -1', borderBottom: 'none', paddingBottom: 0 }}>
-                        <label>Trạng thái tài khoản</label>
-                        <div className="status-pill active" style={{ marginTop: '6px' }}>
-                          ĐANG HOẠT ĐỘNG
-                        </div>
-                      </div>
-                    </div>
-                  </form>
-
-                  <button 
-                    type="button" 
-                    className="btn-logout-profile"
-                    onClick={handleLogout}
-                  >
-                    <SignOut size={18} />
-                    Đăng xuất tài khoản ví
-                  </button>
-                </div>
-
-                {/* 3. Right Column: Transaction Limits & Security Settings */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                  
-
-                  {/* Security Configurations Toggles */}
-                  <div className="security-action-card">
-                    <h3 style={{ margin: '0 0 16px', fontSize: '1.1rem', fontWeight: 700 }}>Xác thực bảo mật</h3>
-                    <p style={{ color: 'var(--muted)', fontSize: '0.82rem', margin: '0 0 20px', lineHeight: 1.4 }}>
-                      Quản lý các lớp bảo mật và phương thức xác thực khi nạp, chuyển, rút tiền.
-                    </p>
-
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <div className="profile-switch-row">
-                        <div className="switch-label-group">
-                          <strong>Xác thực vân tay / Face ID</strong>
-                          <span>Đăng nhập nhanh và thanh toán sinh trắc học</span>
-                        </div>
-                        <label className="ios-switch">
-                          <input 
-                            type="checkbox" 
-                            checked={securityToggles.biometrics} 
-                            onChange={(e) => {
-                              setSecurityToggles({ ...securityToggles, biometrics: e.target.checked });
-                              showToast(e.target.checked ? 'Đã bật xác thực FaceID/Vân tay!' : 'Đã tắt xác thực sinh trắc học.', 'warning');
-                            }}
-                          />
-                          <span className="ios-slider" />
-                        </label>
-                      </div>
-
-                      <div className="profile-switch-row">
-                        <div className="switch-label-group">
-                          <strong>Bảo vệ OTP qua SMS</strong>
-                          <span>Xác thực OTP khi liên kết ngân hàng & unlinking</span>
-                        </div>
-                        <label className="ios-switch">
-                          <input 
-                            type="checkbox" 
-                            checked={securityToggles.smsOtp} 
-                            onChange={(e) => {
-                              setSecurityToggles({ ...securityToggles, smsOtp: e.target.checked });
-                              showToast(e.target.checked ? 'Đã kích hoạt bảo mật SMS OTP.' : 'Đã tắt SMS OTP xác thực.', 'warning');
-                            }}
-                          />
-                          <span className="ios-slider" />
-                        </label>
-                      </div>
-
-                      <div className="profile-switch-row">
-                        <div className="switch-label-group">
-                          <strong>Thông báo giao dịch Email</strong>
-                          <span>Nhận email sao kê sau mỗi giao dịch</span>
-                        </div>
-                        <label className="ios-switch">
-                          <input 
-                            type="checkbox" 
-                            checked={securityToggles.emailOtp} 
-                            onChange={(e) => {
-                              setSecurityToggles({ ...securityToggles, emailOtp: e.target.checked });
-                              showToast(e.target.checked ? 'Đã đăng ký nhận biên lai email.' : 'Đã hủy nhận email sao kê.', 'warning');
-                            }}
-                          />
-                          <span className="ios-slider" />
-                        </label>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-                      <button
-                        type="button"
-                        className="secondary-button"
-                        style={{ flex: 1, minHeight: '44px', fontSize: '0.85rem', fontWeight: 700 }}
-                        onClick={() => setModalType('password')}
-                      >
-                        Đổi mật khẩu
-                      </button>
-                      <button
-                        type="button"
-                        className="secondary-button"
-                        style={{ flex: 1, minHeight: '44px', fontSize: '0.85rem', fontWeight: 700 }}
-                        onClick={() => setModalType('pin')}
-                      >
-                        Đổi mã PIN
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Device Management Card */}
-                  <div className="security-action-card">
-                    <h3 style={{ margin: '0 0 16px', fontSize: '1.1rem', fontWeight: 700 }}>Thiết bị đăng nhập</h3>
-                    <p style={{ color: 'var(--muted)', fontSize: '0.82rem', margin: '0 0 20px', lineHeight: 1.4 }}>
-                      Quản lý và thu hồi các thiết bị đang đăng nhập tài khoản ví của bạn.
-                    </p>
-
-                    <div className="device-list">
-                      {devices.map(dev => (
-                        <div className="device-item" key={dev.id}>
-                          <div className="device-info-wrapper">
-                            <div className="device-icon">
-                              {dev.type === 'desktop' ? <Laptop size={20} /> : <DeviceMobile size={20} />}
-                            </div>
-                            <div className="device-detail">
-                              <strong style={{ fontSize: '0.85rem' }}>{dev.name}</strong>
-                              <span>{dev.lastLogin}</span>
-                            </div>
-                          </div>
-                          {dev.id !== 1 && (
-                            <button className="device-remove-btn" onClick={() => removeDevice(dev.id, dev.name)}>
-                              Thu hồi
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                </div>
-
-                {/* 4. Full-width: Login History Logs */}
-                <div className="security-action-card" style={{ gridColumn: '1 / -1' }}>
-                  <h3 style={{ margin: '0 0 16px', fontSize: '1.15rem', fontWeight: 700 }}>Lịch sử đăng nhập tài khoản</h3>
-                  <p style={{ color: 'var(--muted)', fontSize: '0.85rem', margin: '0 0 20px' }}>
-                    Danh sách chi tiết 3 lần đăng nhập gần nhất vào hệ thống ví VT Pay.
-                  </p>
-                  
-                  <div className="transaction-table-wrapper">
-                    <table className="transaction-table">
-                      <thead>
-                        <tr>
-                          <th>Địa chỉ IP truy cập</th>
-                          <th>Tên thiết bị đăng nhập</th>
-                          <th>Thời gian kết nối</th>
-                          <th>Trạng thái đăng nhập</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {loginHistory.map((hist, idx) => (
-                          <tr key={idx}>
-                            <td style={{ fontWeight: 700 }}>{hist.ip}</td>
-                            <td>{hist.device}</td>
-                            <td style={{ color: 'var(--muted)' }}>{hist.time}</td>
-                            <td>
-                              <span className="status-badge success">{hist.status}</span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-              </div>
-            </div>
+            <ProfilePanel
+              userProfile={userProfile}
+              wallet={wallet}
+              isLive={isLive}
+              isEditMode={isEditMode}
+              setIsEditMode={setIsEditMode}
+              editProfile={editProfile}
+              setEditProfile={setEditProfile}
+              handleCancelProfileEdit={handleCancelProfileEdit}
+              handleSaveProfile={handleSaveProfile}
+              securityToggles={securityToggles}
+              setSecurityToggles={setSecurityToggles}
+              handleLogout={handleLogout}
+              devices={devices}
+              removeDevice={removeDevice}
+              loginHistory={loginHistory}
+              setModalType={setModalType}
+            />
           )}
         </div>
       </main>
 
       {/* Modals */}
-      <Modal isOpen={modalType === 'topup'} onClose={() => setModalType(null)} title="Nạp tiền vào ví VT Pay">
-        {topupStep === 1 && (
-          <form onSubmit={handleTopupAmountSubmit}>
-            <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: '0 0 20px', lineHeight: 1.5 }}>
-              Nạp ví từ tài khoản ngân hàng Vietcombank đã liên kết (Số tài khoản: 1009*****686).
-            </p>
+      <TopupModal
+        isOpen={modalType === 'topup'}
+        topupStep={topupStep}
+        topupError={topupError}
+        modalAmount={modalAmount}
+        setModalAmount={setModalAmount}
+        handleTopupAmountSubmit={handleTopupAmountSubmit}
+        handleVerifyTopupPin={handleVerifyTopupPin}
+        handleVerifyTopupOtp={handleVerifyTopupOtp}
+        topupPin={topupPin}
+        setTopupPin={setTopupPin}
+        topupOtp={topupOtp}
+        setTopupOtp={setTopupOtp}
+        isTopupLoading={isTopupLoading}
+        topupCountdown={topupCountdown}
+        handleResendTopupOtp={handleResendTopupOtp}
+        userProfile={userProfile}
+        parseNumberFromCommas={parseNumberFromCommas}
+        formatNumberWithCommas={formatNumberWithCommas}
+        onBack={() => setTopupStep(1)}
+        onClose={() => setModalType(null)}
+        onReset={() => {
+          setModalType(null)
+          setTopupStep(1)
+          setTopupPin('')
+          setTopupOtp('')
+          setTopupError('')
+        }}
+      />
 
-            {topupError && (
-              <div className="error-message" style={{ fontSize: '0.9rem', marginBottom: '16px' }}>
-                {topupError}
-              </div>
-            )}
+      <WithdrawModal
+        isOpen={modalType === 'withdraw'}
+        withdrawStep={withdrawStep}
+        withdrawError={withdrawError}
+        modalAmount={modalAmount}
+        setModalAmount={setModalAmount}
+        handleWithdrawAmountSubmit={handleWithdrawAmountSubmit}
+        handleVerifyWithdrawPin={handleVerifyWithdrawPin}
+        handleVerifyWithdrawOtp={handleVerifyWithdrawOtp}
+        withdrawPin={withdrawPin}
+        setWithdrawPin={setWithdrawPin}
+        withdrawOtp={withdrawOtp}
+        setWithdrawOtp={setWithdrawOtp}
+        isWithdrawLoading={isWithdrawLoading}
+        withdrawCountdown={withdrawCountdown}
+        handleResendWithdrawOtp={handleResendWithdrawOtp}
+        wallet={wallet}
+        userProfile={userProfile}
+        parseNumberFromCommas={parseNumberFromCommas}
+        formatNumberWithCommas={formatNumberWithCommas}
+        onBack={() => setWithdrawStep(1)}
+        onClose={() => setModalType(null)}
+        onReset={() => {
+          setModalType(null)
+          setWithdrawStep(1)
+          setWithdrawPin('')
+          setWithdrawOtp('')
+          setWithdrawError('')
+        }}
+      />
 
-            <FormInput
-              label="Số tiền nạp (đ)"
-              id="topAmt"
-              type="text"
-              placeholder="Ví dụ: 100,000"
-              value={modalAmount}
-              onChange={(e) => setModalAmount(formatNumberWithCommas(e.target.value))}
-              style={{ marginBottom: '20px' }}
-              required
-            />
+      <PasswordModal
+        isOpen={modalType === 'password'}
+        onClose={() => setModalType(null)}
+        modalPassword={modalPassword}
+        setModalPassword={setModalPassword}
+        handlePasswordChangeSubmit={handlePasswordChangeSubmit}
+      />
 
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <button className="secondary-button" type="button" style={{ flex: 1, minHeight: '46px' }} onClick={() => setModalType(null)}>Hủy bỏ</button>
-              <button className="auth-btn" type="submit" style={{ flex: 1, minHeight: '46px' }}>Tiếp tục</button>
-            </div>
-          </form>
-        )}
+      <PinModal
+        isOpen={modalType === 'pin'}
+        onClose={() => setModalType(null)}
+        modalPin={modalPin}
+        setModalPin={setModalPin}
+        handlePinChangeSubmit={handlePinChangeSubmit}
+      />
 
-        {topupStep === 2 && (
-          <form onSubmit={handleVerifyTopupPin}>
-            <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: '0 0 20px', lineHeight: 1.5 }}>
-              Để xác nhận nạp số tiền <strong>{parseNumberFromCommas(modalAmount).toLocaleString()}đ</strong> từ ngân hàng liên kết vào ví VT Pay, vui lòng nhập mã PIN giao dịch của bạn.
-            </p>
-
-            {topupError && (
-              <div className="error-message" style={{ fontSize: '0.9rem', marginBottom: '16px' }}>
-                {topupError}
-              </div>
-            )}
-
-            <FormInput
-              label="Mã PIN giao dịch (6 số)"
-              id="topupPin"
-              type="password"
-              placeholder="Nhập mã PIN giao dịch"
-              value={topupPin}
-              onChange={(e) => setTopupPin(e.target.value.replace(/\D/g, ''))}
-              inputStyle={{ textAlign: 'center', letterSpacing: '8px', fontSize: '1.2rem' }}
-              maxLength="6"
-              required
-              disabled={isTopupLoading}
-            />
-
-            <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-              <button
-                className="secondary-button"
-                type="button"
-                style={{ flex: 1, minHeight: '46px' }}
-                onClick={() => setTopupStep(1)}
-                disabled={isTopupLoading}
-              >
-                Quay lại
-              </button>
-              <button
-                className="auth-btn"
-                type="submit"
-                style={{ flex: 1, minHeight: '46px' }}
-                disabled={isTopupLoading}
-              >
-                Tiếp tục
-              </button>
-            </div>
-          </form>
-        )}
-
-        {topupStep === 3 && (
-          <form onSubmit={handleVerifyTopupOtp}>
-            <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: '0 0 20px', lineHeight: 1.5 }}>
-              Mã OTP xác thực đã được gửi qua SMS tới số <strong>{userProfile.phone}</strong>. Vui lòng nhập mã OTP để hoàn tất nạp <strong>{parseNumberFromCommas(modalAmount).toLocaleString()}đ</strong> vào ví.
-            </p>
-
-            {topupError && (
-              <div className="error-message" style={{ fontSize: '0.9rem', marginBottom: '16px' }}>
-                <Warning size={16} /> {topupError}
-              </div>
-            )}
-
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', marginBottom: '16px' }}>
-              <div style={{ flex: 1 }}>
-                <FormInput
-                  label="Mã xác thực OTP (6 chữ số)"
-                  id="topupOtp"
-                  type="password"
-                  placeholder="Nhập mã OTP 6 số"
-                  value={topupOtp}
-                  onChange={(e) => setTopupOtp(e.target.value.replace(/\D/g, ''))}
-                  inputStyle={{ textAlign: 'center', letterSpacing: '8px', fontSize: '1.2rem' }}
-                  maxLength="6"
-                  required
-                  disabled={isTopupLoading}
-                  style={{ marginBottom: 0 }}
-                />
-              </div>
-              <button
-                type="button"
-                onClick={handleResendTopupOtp}
-                disabled={topupCountdown > 0 || isTopupLoading}
-                className="secondary-button"
-                style={{
-                  height: '48px',
-                  whiteSpace: 'nowrap',
-                  padding: '0 16px',
-                  fontSize: '0.88rem',
-                  fontWeight: 700,
-                  borderRadius: '14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  minWidth: '120px'
-                }}
-              >
-                {topupCountdown > 0 ? `Gửi lại (${topupCountdown}s)` : 'Gửi lại mã'}
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-              <button
-                className="secondary-button"
-                type="button"
-                style={{ flex: 1, minHeight: '46px' }}
-                onClick={() => { setTopupStep(2); setTopupError('') }}
-                disabled={isTopupLoading}
-              >
-                Quay lại
-              </button>
-              <button
-                className="auth-btn"
-                type="submit"
-                style={{ flex: 1, minHeight: '46px' }}
-                disabled={isTopupLoading}
-              >
-                {isTopupLoading ? <div className="btn-spinner" /> : 'Xác nhận nạp'}
-              </button>
-            </div>
-          </form>
-        )}
-      </Modal>
-
-      <Modal isOpen={modalType === 'withdraw'} onClose={() => setModalType(null)} title="Rút tiền về tài khoản ngân hàng">
-        {withdrawStep === 1 && (
-          <form onSubmit={handleWithdrawAmountSubmit}>
-            <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: '0 0 20px', lineHeight: 1.5 }}>
-              Chuyển tiền từ tài khoản ví VT Pay về ngân hàng liên kết. Số dư khả dụng hiện tại: <strong style={{ color: 'var(--accent)' }}>{wallet.balance.toLocaleString()}đ</strong>.
-            </p>
-
-            {withdrawError && (
-              <div className="error-message" style={{ fontSize: '0.9rem', marginBottom: '16px' }}>
-                {withdrawError}
-              </div>
-            )}
-
-            <FormInput
-              label="Số tiền rút (đ)"
-              id="withAmt"
-              type="text"
-              placeholder="Ví dụ: 50,000"
-              value={modalAmount}
-              onChange={(e) => setModalAmount(formatNumberWithCommas(e.target.value))}
-              style={{ marginBottom: '20px' }}
-              required
-            />
-
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <button className="secondary-button" type="button" style={{ flex: 1, minHeight: '46px' }} onClick={() => setModalType(null)}>Hủy bỏ</button>
-              <button className="auth-btn" type="submit" style={{ flex: 1, minHeight: '46px' }}>Tiếp tục</button>
-            </div>
-          </form>
-        )}
-
-        {withdrawStep === 2 && (
-          <form onSubmit={handleVerifyWithdrawPin}>
-            <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: '0 0 20px', lineHeight: 1.5 }}>
-              Để xác nhận rút số tiền <strong>{parseNumberFromCommas(modalAmount).toLocaleString()}đ</strong> về tài khoản ngân hàng liên kết, vui lòng nhập mã PIN giao dịch của bạn.
-            </p>
-
-            {withdrawError && (
-              <div className="error-message" style={{ fontSize: '0.9rem', marginBottom: '16px' }}>
-                {withdrawError}
-              </div>
-            )}
-
-            <FormInput
-              label="Mã PIN giao dịch (6 số)"
-              id="withdrawPin"
-              type="password"
-              placeholder="Nhập mã PIN giao dịch"
-              value={withdrawPin}
-              onChange={(e) => setWithdrawPin(e.target.value.replace(/\D/g, ''))}
-              inputStyle={{ textAlign: 'center', letterSpacing: '8px', fontSize: '1.2rem' }}
-              maxLength="6"
-              required
-              disabled={isWithdrawLoading}
-            />
-
-            <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-              <button
-                className="secondary-button"
-                type="button"
-                style={{ flex: 1, minHeight: '46px' }}
-                onClick={() => setWithdrawStep(1)}
-                disabled={isWithdrawLoading}
-              >
-                Quay lại
-              </button>
-              <button
-                className="auth-btn"
-                type="submit"
-                style={{ flex: 1, minHeight: '46px' }}
-                disabled={isWithdrawLoading}
-              >
-                Tiếp tục
-              </button>
-            </div>
-          </form>
-        )}
-
-        {withdrawStep === 3 && (
-          <form onSubmit={handleVerifyWithdrawOtp}>
-            <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: '0 0 20px', lineHeight: 1.5 }}>
-              Mã OTP xác thực đã được gửi qua SMS tới số <strong>{userProfile.phone}</strong>. Vui lòng nhập mã OTP để hoàn tất rút <strong>{parseNumberFromCommas(modalAmount).toLocaleString()}đ</strong> về ngân hàng.
-            </p>
-
-            {withdrawError && (
-              <div className="error-message" style={{ fontSize: '0.9rem', marginBottom: '16px' }}>
-                <Warning size={16} /> {withdrawError}
-              </div>
-            )}
-
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', marginBottom: '16px' }}>
-              <div style={{ flex: 1 }}>
-                <FormInput
-                  label="Mã xác thực OTP (6 chữ số)"
-                  id="withdrawOtp"
-                  type="password"
-                  placeholder="Nhập mã OTP 6 số"
-                  value={withdrawOtp}
-                  onChange={(e) => setWithdrawOtp(e.target.value.replace(/\D/g, ''))}
-                  inputStyle={{ textAlign: 'center', letterSpacing: '8px', fontSize: '1.2rem' }}
-                  maxLength="6"
-                  required
-                  disabled={isWithdrawLoading}
-                  style={{ marginBottom: 0 }}
-                />
-              </div>
-              <button
-                type="button"
-                onClick={handleResendWithdrawOtp}
-                disabled={withdrawCountdown > 0 || isWithdrawLoading}
-                className="secondary-button"
-                style={{
-                  height: '48px',
-                  whiteSpace: 'nowrap',
-                  padding: '0 16px',
-                  fontSize: '0.88rem',
-                  fontWeight: 700,
-                  borderRadius: '14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  minWidth: '120px'
-                }}
-              >
-                {withdrawCountdown > 0 ? `Gửi lại (${withdrawCountdown}s)` : 'Gửi lại mã'}
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-              <button
-                className="secondary-button"
-                type="button"
-                style={{ flex: 1, minHeight: '46px' }}
-                onClick={() => { setWithdrawStep(2); setWithdrawError('') }}
-                disabled={isWithdrawLoading}
-              >
-                Quay lại
-              </button>
-              <button
-                className="auth-btn"
-                type="submit"
-                style={{ flex: 1, minHeight: '46px' }}
-                disabled={isWithdrawLoading}
-              >
-                {isWithdrawLoading ? <div className="btn-spinner" /> : 'Xác nhận rút'}
-              </button>
-            </div>
-          </form>
-        )}
-      </Modal>
-
-      <Modal isOpen={modalType === 'password'} onClose={() => setModalType(null)} title="Đổi mật khẩu tài khoản ví">
-        <form onSubmit={handlePasswordChangeSubmit}>
-          <div className="auth-form" style={{ gap: '16px', marginBottom: '24px' }}>
-            <FormInput
-              label="Mật khẩu hiện tại"
-              id="oldPassword"
-              type="password"
-              placeholder="Mật khẩu cũ"
-              value={modalPassword.old}
-              onChange={(e) => setModalPassword({ ...modalPassword, old: e.target.value })}
-              required
-            />
-
-            <FormInput
-              label="Mật khẩu mới"
-              id="newPassword"
-              type="password"
-              placeholder="Tối thiểu 6 ký tự"
-              value={modalPassword.new}
-              onChange={(e) => setModalPassword({ ...modalPassword, new: e.target.value })}
-              required
-            />
-
-            <FormInput
-              label="Xác nhận mật khẩu mới"
-              id="confirmPassword"
-              type="password"
-              placeholder="Nhập lại mật khẩu mới"
-              value={modalPassword.confirm}
-              onChange={(e) => setModalPassword({ ...modalPassword, confirm: e.target.value })}
-              required
-            />
-          </div>
-
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <button className="secondary-button" type="button" style={{ flex: 1, minHeight: '46px' }} onClick={() => setModalType(null)}>Hủy bỏ</button>
-            <button className="auth-btn" type="submit" style={{ flex: 1, minHeight: '46px' }}>Cập nhật</button>
-          </div>
-        </form>
-      </Modal>
-
-      <Modal isOpen={modalType === 'pin'} onClose={() => setModalType(null)} title="Đổi mã PIN giao dịch ví">
-        <form onSubmit={handlePinChangeSubmit}>
-          <div className="auth-form" style={{ gap: '16px', marginBottom: '24px' }}>
-            <FormInput
-              label="Mã PIN giao dịch cũ"
-              id="oldPin"
-              type="password"
-              placeholder="Nhập mã PIN cũ (6 số)"
-              value={modalPin.old}
-              onChange={(e) => setModalPin({ ...modalPin, old: e.target.value })}
-              inputStyle={{ textAlign: 'center', letterSpacing: '8px', fontSize: '1.2rem' }}
-              maxLength="6"
-              required
-            />
-
-            <FormInput
-              label="Mã PIN mới"
-              id="newPin"
-              type="password"
-              placeholder="Thiết lập 6 số PIN mới"
-              value={modalPin.new}
-              onChange={(e) => setModalPin({ ...modalPin, new: e.target.value })}
-              inputStyle={{ textAlign: 'center', letterSpacing: '8px', fontSize: '1.2rem' }}
-              maxLength="6"
-              required
-            />
-
-            <FormInput
-              label="Xác nhận mã PIN mới"
-              id="confirmPin"
-              type="password"
-              placeholder="Xác nhận lại 6 số PIN mới"
-              value={modalPin.confirm}
-              onChange={(e) => setModalPin({ ...modalPin, confirm: e.target.value })}
-              inputStyle={{ textAlign: 'center', letterSpacing: '8px', fontSize: '1.2rem' }}
-              maxLength="6"
-              required
-            />
-          </div>
-
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <button className="secondary-button" type="button" style={{ flex: 1, minHeight: '46px' }} onClick={() => setModalType(null)}>Hủy bỏ</button>
-            <button className="auth-btn" type="submit" style={{ flex: 1, minHeight: '46px' }}>Cập nhật PIN</button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* Modal 5: CONFIRM UNLINK BANK WITH OTP */}
-      <Modal
+      <UnlinkBankModal
         isOpen={unlinkBankTarget !== null}
-        onClose={() => setUnlinkBankTarget(null)}
-        title={`Xác nhận hủy liên kết ${unlinkBankTarget ? unlinkBankTarget.bankName : ''}`}
-      >
-        <form onSubmit={handleVerifyUnlinkOtp}>
-          <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: '0 0 20px', lineHeight: 1.5 }}>
-            Để đảm bảo an toàn cho tài khoản ví, vui lòng xác nhận mã OTP gửi qua SMS tới số điện thoại <strong>{userProfile.phone}</strong> để hủy liên kết tài khoản <strong>{unlinkBankTarget ? `${unlinkBankTarget.bankName} (STK: ...${unlinkBankTarget.accountNumber.slice(-4)})` : ''}</strong>.
-          </p>
+        onClose={() => {
+          setUnlinkBankTarget(null)
+          setUnlinkOtp('')
+          setUnlinkError('')
+        }}
+        userProfile={userProfile}
+        unlinkBankTarget={unlinkBankTarget}
+        unlinkError={unlinkError}
+        unlinkOtp={unlinkOtp}
+        setUnlinkOtp={setUnlinkOtp}
+        isUnlinkingLoading={isUnlinkingLoading}
+        handleResendUnlinkOtp={handleResendUnlinkOtp}
+        handleVerifyUnlinkOtp={handleVerifyUnlinkOtp}
+        unlinkCountdown={unlinkCountdown}
+      />
 
-          {unlinkError && (
-            <div className="error-message" style={{ fontSize: '0.9rem', marginBottom: '16px' }}>
-              <Warning size={16} /> {unlinkError}
-            </div>
-          )}
-
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', marginBottom: '16px' }}>
-            <div style={{ flex: 1 }}>
-              <FormInput
-                label="Mã xác thực OTP (6 chữ số)"
-                id="unlinkOtp"
-                type="password"
-                placeholder="Nhập mã OTP 6 số"
-                value={unlinkOtp}
-                onChange={(e) => setUnlinkOtp(e.target.value.replace(/\D/g, ''))}
-                inputStyle={{ textAlign: 'center', letterSpacing: '8px', fontSize: '1.2rem' }}
-                maxLength="6"
-                required
-                disabled={isUnlinkingLoading}
-                style={{ marginBottom: 0 }}
-              />
-            </div>
-            <button
-              type="button"
-              onClick={handleResendUnlinkOtp}
-              disabled={unlinkCountdown > 0 || isUnlinkingLoading}
-              className="secondary-button"
-              style={{
-                height: '48px',
-                whiteSpace: 'nowrap',
-                padding: '0 16px',
-                fontSize: '0.88rem',
-                fontWeight: 700,
-                borderRadius: '14px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                minWidth: '120px'
-              }}
-            >
-              {unlinkCountdown > 0 ? `Gửi lại (${unlinkCountdown}s)` : 'Gửi mã'}
-            </button>
-          </div>
-
-          <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-            <button
-              className="secondary-button"
-              type="button"
-              style={{ flex: 1, minHeight: '46px' }}
-              onClick={() => setUnlinkBankTarget(null)}
-              disabled={isUnlinkingLoading}
-            >
-              Hủy bỏ
-            </button>
-            <button
-              className="auth-btn"
-              type="submit"
-              style={{ flex: 1, minHeight: '46px', background: '#ef4444' }}
-              disabled={isUnlinkingLoading}
-            >
-              {isUnlinkingLoading ? <div className="btn-spinner" /> : 'Xác nhận hủy'}
-            </button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* Modal 6: CONFIRM TRANSFER WITH PIN & OTP */}
-      <Modal
+      <TransferConfirmModal
         isOpen={showTransferConfirm}
+        transferOtpStep={transferOtpStep}
         onClose={() => {
           if (!isTransferConfirmLoading) {
             setShowTransferConfirm(false)
@@ -2993,273 +1387,51 @@ function Dashboard() {
             setTransferConfirmError('')
           }
         }}
-        title={transferOtpStep ? 'Xác thực OTP chuyển tiền' : 'Xác nhận chuyển tiền'}
-      >
-        {!transferOtpStep ? (
-          <form onSubmit={handleVerifyTransferPin}>
-            <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: '0 0 20px', lineHeight: 1.5 }}>
-              Vui lòng kiểm tra kỹ thông tin giao dịch và nhập mã PIN của bạn để tiếp tục.
-            </p>
+        onCancel={() => {
+          if (!isTransferConfirmLoading) {
+            setShowTransferConfirm(false)
+            setTransferOtpStep(false)
+            setTransferPin('')
+            setTransferOtp('')
+            setTransferConfirmError('')
+          }
+        }}
+        transferPhone={transferPhone}
+        transferAmount={transferAmount}
+        transferNote={transferNote}
+        transferConfirmError={transferConfirmError}
+        transferPin={transferPin}
+        setTransferPin={setTransferPin}
+        transferOtp={transferOtp}
+        setTransferOtp={setTransferOtp}
+        isTransferConfirmLoading={isTransferConfirmLoading}
+        transferCountdown={transferCountdown}
+        handleVerifyTransferPin={handleVerifyTransferPin}
+        handleVerifyTransferOtp={handleVerifyTransferOtp}
+        handleResendTransferOtp={handleResendTransferOtp}
+        parseNumberFromCommas={parseNumberFromCommas}
+        userProfile={userProfile}
+      />
 
-            <div className="recent-transactions-card" style={{ padding: '16px', background: 'var(--bg)', border: '1px solid var(--line)', borderRadius: '12px', marginBottom: '20px', fontSize: '0.88rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--line)', paddingBottom: '8px', marginBottom: '8px' }}>
-                <span style={{ color: 'var(--muted)' }}>Tài khoản nhận:</span>
-                <strong style={{ color: 'var(--ink)' }}>{transferPhone}</strong>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--line)', paddingBottom: '8px', marginBottom: '8px' }}>
-                <span style={{ color: 'var(--muted)' }}>Số tiền chuyển:</span>
-                <strong style={{ color: 'var(--ink)', fontSize: '1rem' }}>{parseNumberFromCommas(transferAmount || 0).toLocaleString()}đ</strong>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--line)', paddingBottom: '8px', marginBottom: '8px' }}>
-                <span style={{ color: 'var(--muted)' }}>Phí chuyển tiền:</span>
-                <strong style={{ color: '#22c55e' }}>Miễn phí (0đ)</strong>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--muted)' }}>Nội dung chuyển:</span>
-                <span style={{ color: 'var(--ink)', maxWidth: '60%', textAlign: 'right', overflowWrap: 'break-word', fontWeight: 500 }}>{transferNote || 'Chuyen tien'}</span>
-              </div>
-            </div>
-
-            {transferConfirmError && (
-              <div className="error-message" style={{ fontSize: '0.9rem', marginBottom: '16px' }}>
-                <Warning size={16} /> {transferConfirmError}
-              </div>
-            )}
-
-            <FormInput
-              label="Nhập mã PIN giao dịch (6 chữ số)"
-              id="transferPin"
-              type="password"
-              placeholder="Nhập mã PIN gồm 6 số"
-              value={transferPin}
-              onChange={(e) => setTransferPin(e.target.value.replace(/\D/g, ''))}
-              inputStyle={{ textAlign: 'center', letterSpacing: '8px', fontSize: '1.2rem' }}
-              maxLength="6"
-              required
-              disabled={isTransferConfirmLoading}
-            />
-
-            <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-              <button
-                className="secondary-button"
-                type="button"
-                style={{ flex: 1, minHeight: '46px' }}
-                onClick={() => {
-                  setShowTransferConfirm(false)
-                  setTransferPin('')
-                  setTransferConfirmError('')
-                }}
-                disabled={isTransferConfirmLoading}
-              >
-                Hủy bỏ
-              </button>
-              <button
-                className="auth-btn"
-                type="submit"
-                style={{ flex: 1, minHeight: '46px' }}
-                disabled={isTransferConfirmLoading}
-              >
-                Tiếp tục
-              </button>
-            </div>
-          </form>
-        ) : (
-          <form onSubmit={handleVerifyTransferOtp}>
-            <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: '0 0 20px', lineHeight: 1.5 }}>
-              Mã OTP xác thực đã được gửi qua SMS tới số <strong>{userProfile.phone}</strong>. Vui lòng nhập mã OTP để hoàn tất chuyển <strong>{parseNumberFromCommas(transferAmount || 0).toLocaleString()}đ</strong> tới <strong>{transferPhone}</strong>.
-            </p>
-
-            {transferConfirmError && (
-              <div className="error-message" style={{ fontSize: '0.9rem', marginBottom: '16px' }}>
-                <Warning size={16} /> {transferConfirmError}
-              </div>
-            )}
-
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', marginBottom: '16px' }}>
-              <div style={{ flex: 1 }}>
-                <FormInput
-                  label="Mã xác thực OTP (6 chữ số)"
-                  id="transferOtp"
-                  type="password"
-                  placeholder="Nhập mã OTP 6 số"
-                  value={transferOtp}
-                  onChange={(e) => setTransferOtp(e.target.value.replace(/\D/g, ''))}
-                  inputStyle={{ textAlign: 'center', letterSpacing: '8px', fontSize: '1.2rem' }}
-                  maxLength="6"
-                  required
-                  disabled={isTransferConfirmLoading}
-                  style={{ marginBottom: 0 }}
-                />
-              </div>
-              <button
-                type="button"
-                onClick={handleResendTransferOtp}
-                disabled={transferCountdown > 0 || isTransferConfirmLoading}
-                className="secondary-button"
-                style={{
-                  height: '48px',
-                  whiteSpace: 'nowrap',
-                  padding: '0 16px',
-                  fontSize: '0.88rem',
-                  fontWeight: 700,
-                  borderRadius: '14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  minWidth: '120px'
-                }}
-              >
-                {transferCountdown > 0 ? `Gửi lại (${transferCountdown}s)` : 'Gửi lại mã'}
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-              <button
-                className="secondary-button"
-                type="button"
-                style={{ flex: 1, minHeight: '46px' }}
-                onClick={() => { setTransferOtpStep(false); setTransferConfirmError('') }}
-                disabled={isTransferConfirmLoading}
-              >
-                Quay lại
-              </button>
-              <button
-                className="auth-btn"
-                type="submit"
-                style={{ flex: 1, minHeight: '46px' }}
-                disabled={isTransferConfirmLoading}
-              >
-                {isTransferConfirmLoading ? <div className="btn-spinner" /> : 'Xác nhận chuyển'}
-              </button>
-            </div>
-          </form>
-        )}
-      </Modal>
-
-      {/* Modal 7: QR CODE SCANNER */}
-      <Modal
+      <QrScannerModal
         isOpen={modalType === 'qrscanner'}
         onClose={() => {
           setModalType(null)
           setQrFile(null)
           setScanSuccess(false)
         }}
-        title="Quét mã QR chuyển tiền"
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: '0 0 20px', lineHeight: 1.4, textAlign: 'center' }}>
-            Giả lập quét mã QR để lấy thông tin tài khoản người nhận. Hỗ trợ quét qua camera hoặc tải ảnh từ thư viện.
-          </p>
-
-          {/* Scanner Viewframe */}
-          <div 
-            style={{
-              width: '240px',
-              height: '240px',
-              border: '2px solid var(--accent)',
-              borderRadius: '20px',
-              position: 'relative',
-              overflow: 'hidden',
-              background: '#090f1d',
-              display: 'grid',
-              placeItems: 'center',
-              boxShadow: '0 10px 25px rgba(0, 106, 255, 0.1)',
-              marginBottom: '24px'
-            }}
-          >
-            {/* Animated Laser line */}
-            <div 
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '3px',
-                background: 'linear-gradient(90deg, transparent, #006aff, transparent)',
-                boxShadow: '0 0 8px #006aff',
-                animation: 'scanLineEffect 2s linear infinite'
-              }} 
-            />
-
-            {scanSuccess ? (
-              <div style={{ color: '#22c55e', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', zIndex: 2 }}>
-                <CheckCircle size={44} weight="fill" />
-                <strong style={{ fontSize: '0.9rem' }}>Quét mã thành công!</strong>
-              </div>
-            ) : qrFile ? (
-              <div style={{ color: 'var(--accent)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', zIndex: 2 }}>
-                <div className="btn-spinner" style={{ width: '32px', height: '32px', borderWidth: '3px' }} />
-                <span style={{ fontSize: '0.78rem', color: 'var(--muted)' }}>Đang giải mã QR...</span>
-              </div>
-            ) : (
-              <div style={{ color: 'var(--muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', zIndex: 2 }}>
-                <QrCode size={48} weight="thin" />
-                <span style={{ fontSize: '0.78rem' }}>Đặt mã QR vào khung hình</span>
-              </div>
-            )}
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
-            
-            {/* File Upload mock scanner */}
-            <div style={{ position: 'relative', width: '100%' }}>
-              <input 
-                type="file" 
-                accept="image/*"
-                style={{ position: 'absolute', inset: 0, opacity: 0, width: '100%', cursor: 'pointer', zIndex: 5 }}
-                onChange={(e) => {
-                  if (e.target.files && e.target.files[0]) {
-                    setQrFile(e.target.files[0])
-                    // Simulate decoding delay
-                    setTimeout(() => {
-                      setScanSuccess(true)
-                      showToast('Giải mã QR thành công!')
-                      // Fill transfer details
-                      setTimeout(() => {
-                        setTransferPhone('0987654321')
-                        setTransferAmount('')
-                        setTransferNote('Chuyen khoan qua QR nhan tien')
-                        setActiveTab('transactions')
-                        setModalType(null)
-                        setQrFile(null)
-                        setScanSuccess(false)
-                      }, 1200)
-                    }, 1500)
-                  }
-                }}
-              />
-              <button 
-                className="secondary-button" 
-                type="button" 
-                style={{ width: '100%', minHeight: '44px', fontWeight: 700 }}
-              >
-                {qrFile ? `Đã chọn: ${qrFile.name.substring(0, 15)}...` : 'Tải lên ảnh QR từ thiết bị'}
-              </button>
-            </div>
-
-            {/* Simulated direct scan target */}
-            <button
-              className="auth-btn"
-              type="button"
-              style={{ width: '100%', minHeight: '44px' }}
-              onClick={() => {
-                setScanSuccess(true)
-                showToast('Quét QR Nguyễn Bá Việt thành công!')
-                setTimeout(() => {
-                  setTransferPhone('0987654321')
-                  setTransferAmount('')
-                  setTransferNote('Quet QR chuyen tien nhanh')
-                  setActiveTab('transactions')
-                  setModalType(null)
-                  setScanSuccess(false)
-                }, 1000)
-              }}
-            >
-              Simulate quét QR người nhận (0987654321)
-            </button>
-          </div>
-        </div>
-      </Modal>
+        qrFile={qrFile}
+        setQrFile={setQrFile}
+        scanSuccess={scanSuccess}
+        setScanSuccess={setScanSuccess}
+        showToast={showToast}
+        setTransferPhone={setTransferPhone}
+        setTransferAmount={setTransferAmount}
+        setTransferNote={setTransferNote}
+        setActiveTab={setActiveTab}
+        setModalType={setModalType}
+        userProfile={userProfile}
+      />
     </div>
   )
 }
