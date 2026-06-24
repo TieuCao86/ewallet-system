@@ -1,4 +1,4 @@
-package com.ewallet.security.config;
+package com.ewallet.config;
 
 import com.ewallet.security.filter.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +30,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/swagger-ui/**",
-                                "/v3/api-docs/**"
+                                "/v3/api-docs/**",
+                                "/api/wallets/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
