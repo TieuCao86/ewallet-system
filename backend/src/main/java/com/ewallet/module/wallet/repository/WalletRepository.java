@@ -2,8 +2,13 @@ package com.ewallet.module.wallet.repository;
 
 import com.ewallet.module.wallet.entity.Wallet;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 
-@Repository
-public interface WalletRepository extends JpaRepository<Wallet, Long> {
+import java.util.Optional;
+
+public interface WalletRepository
+        extends JpaRepository<Wallet, Long> {
+
+    Optional<Wallet> findByUserId(Long userId);
+
+    Optional<Wallet> findByWalletNumber(String walletNumber);
 }

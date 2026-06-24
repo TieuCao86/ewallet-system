@@ -6,6 +6,7 @@ import com.ewallet.module.user.enums.KycStatus;
 import com.ewallet.module.user.enums.Role;
 import com.ewallet.module.user.enums.UserStatus;
 import com.ewallet.module.user.repository.UserRepository;
+import com.ewallet.module.wallet.service.WalletService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,8 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+
+    private final WalletService walletService;
 
     public User register(RegisterRequest request){
 
@@ -29,7 +32,11 @@ public class UserService {
                 .kycStatus(KycStatus.PENDING)
                 .build();
 
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+
+        walletService.createWallet(savedUser.getId());
+
+        return savedUser;
     }
 
     public User getByEmail(String email) {

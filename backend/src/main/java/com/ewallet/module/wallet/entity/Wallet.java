@@ -3,6 +3,8 @@ package com.ewallet.module.wallet.entity;
 import com.ewallet.module.wallet.enums.WalletStatus;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -20,16 +22,25 @@ public class Wallet {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(unique = true, nullable = false)
     private String walletNumber;
 
+    @Column(nullable = false, unique = true)
     private Long userId;
 
-    private BigDecimal balance;
+    @Column(nullable = false)
+    @Builder.Default
+    private BigDecimal balance = BigDecimal.ZERO;
 
     @Enumerated(EnumType.STRING)
-    private WalletStatus status;
+    @Column(nullable = false)
+    @Builder.Default
+    private WalletStatus status = WalletStatus.ACTIVE;
 
+    @CreationTimestamp
+    @Column(updatable = false)
     private LocalDateTime createdAt;
 
+    @UpdateTimestamp
     private LocalDateTime updatedAt;
 }
