@@ -17,7 +17,8 @@ import {
   PinModal,
   UnlinkBankModal,
   TransferConfirmModal,
-  QrScannerModal
+  QrScannerModal,
+  TransactionSuccessModal
 } from '../components/modals'
 import './Dashboard.css'
 
@@ -152,6 +153,7 @@ function Dashboard() {
 
   // Transfer Confirmation PIN & OTP States
   const [showTransferConfirm, setShowTransferConfirm] = useState(false)
+  const [successTx, setSuccessTx] = useState(null)
   const [transferPin, setTransferPin] = useState('')
   const [transferOtp, setTransferOtp] = useState('')
   const [transferOtpStep, setTransferOtpStep] = useState(false) // false: PIN, true: OTP
@@ -775,12 +777,14 @@ function Dashboard() {
         amount: -amountVal,
         type: 'TRANSFER',
         date: new Date().toISOString().replace('T', ' ').substring(0, 19),
-        status: 'SUCCESS'
+        status: 'SUCCESS',
+        note: transferNote || 'Chuyển tiền nhanh qua ví'
       }
 
       setWallet(prev => ({ ...prev, balance: prev.balance - amountVal }))
       setTransactions(prev => [newTx, ...prev])
       showToast(`Chuyển khoản thành công ${amountVal.toLocaleString()}đ tới ${transferPhone}!`)
+      setSuccessTx(newTx)
 
       // Reset transfer inputs
       setTransferPhone('')
@@ -860,10 +864,12 @@ function Dashboard() {
         amount: amountVal,
         type: 'TOPUP',
         date: new Date().toISOString().replace('T', ' ').substring(0, 19),
-        status: 'SUCCESS'
+        status: 'SUCCESS',
+        note: 'Nạp tiền từ ngân hàng Vietcombank liên kết'
       }
       setTransactions(prev => [newTx, ...prev])
       showToast(`Nạp thành công ${amountVal.toLocaleString()}đ vào ví!`)
+      setSuccessTx(newTx)
 
       setModalAmount('')
       setTopupPin('')
@@ -942,10 +948,12 @@ function Dashboard() {
         amount: -amountVal,
         type: 'WITHDRAW',
         date: new Date().toISOString().replace('T', ' ').substring(0, 19),
-        status: 'SUCCESS'
+        status: 'SUCCESS',
+        note: 'Rút tiền về tài khoản ngân hàng liên kết'
       }
       setTransactions(prev => [newTx, ...prev])
       showToast(`Rút thành công ${amountVal.toLocaleString()}đ về tài khoản!`)
+      setSuccessTx(newTx)
 
       setModalAmount('')
       setWithdrawPin('')
@@ -1430,6 +1438,14 @@ function Dashboard() {
         setActiveTab={setActiveTab}
         setModalType={setModalType}
         userProfile={userProfile}
+      />
+
+      <TransactionSuccessModal
+        isOpen={successTx !== null}
+        tx={successTx}
+        onClose={() => setSuccessTx(null)}
+        userProfile={userProfile}
+        showToast={showToast}
       />
     </div>
   )
