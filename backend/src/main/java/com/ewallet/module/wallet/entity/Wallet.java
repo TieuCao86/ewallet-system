@@ -1,13 +1,11 @@
 package com.ewallet.module.wallet.entity;
 
+import com.ewallet.common.entity.BaseEntity;
 import com.ewallet.module.wallet.enums.WalletStatus;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "wallets")
@@ -16,15 +14,14 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Wallet {
+public class Wallet extends BaseEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(unique = true, nullable = false)
+    @Column(nullable = false, unique = true)
     private String walletNumber;
 
+    /**
+     * Hiện tại dùng userId để dễ tách microservice sau này
+     */
     @Column(nullable = false, unique = true)
     private Long userId;
 
@@ -36,11 +33,4 @@ public class Wallet {
     @Column(nullable = false)
     @Builder.Default
     private WalletStatus status = WalletStatus.ACTIVE;
-
-    @CreationTimestamp
-    @Column(updatable = false)
-    private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    private LocalDateTime updatedAt;
 }

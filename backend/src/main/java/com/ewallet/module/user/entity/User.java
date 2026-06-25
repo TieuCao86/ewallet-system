@@ -1,12 +1,11 @@
 package com.ewallet.module.user.entity;
 
+import com.ewallet.common.entity.BaseEntity;
 import com.ewallet.module.user.enums.KycStatus;
 import com.ewallet.module.user.enums.Role;
 import com.ewallet.module.user.enums.UserStatus;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
@@ -17,11 +16,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class User {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class User extends BaseEntity {
 
     @Column(nullable = false)
     private String fullName;
@@ -36,55 +31,32 @@ public class User {
     private String password;
 
     /**
-     * PIN dùng cho giao dịch chuyển tiền
+     * PIN giao dịch (nên lưu BCrypt sau này)
      */
     private String pin;
 
-    /**
-     * USER / ADMIN
-     */
     @Enumerated(EnumType.STRING)
-    private Role role;
-
-    /**
-     * ACTIVE / LOCKED / DISABLED
-     */
-    @Enumerated(EnumType.STRING)
-    private UserStatus status;
-
-    /**
-     * PENDING / APPROVED / REJECTED
-     */
-    @Enumerated(EnumType.STRING)
-    private KycStatus kycStatus;
-
-    /**
-     * Số lần đăng nhập sai
-     */
     @Column(nullable = false)
+    @Builder.Default
+    private Role role = Role.USER;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private UserStatus status = UserStatus.ACTIVE;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private KycStatus kycStatus = KycStatus.PENDING;
+
+    @Column(nullable = false)
+    @Builder.Default
     private Integer failedLoginAttempts = 0;
 
-    /**
-     * Bật/tắt xác thực 2 lớp
-     */
     @Column(nullable = false)
+    @Builder.Default
     private Boolean twoFactorEnabled = false;
 
-    /**
-     * Lần đăng nhập cuối
-     */
     private LocalDateTime lastLogin;
-
-    /**
-     * Thời gian tạo tài khoản
-     */
-    @CreationTimestamp
-    @Column(updatable = false)
-    private LocalDateTime createdAt;
-
-    /**
-     * Thời gian cập nhật gần nhất
-     */
-    @UpdateTimestamp
-    private LocalDateTime updatedAt;
 }
