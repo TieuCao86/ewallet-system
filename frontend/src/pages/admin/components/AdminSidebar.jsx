@@ -36,7 +36,7 @@ export default function AdminSidebar({
           <ListBullets size={20} weight="bold" />
           Tổng quan
         </button>
-        
+
         <button
           className={`admin-menu-item ${activeTab === 'users' ? 'active' : ''}`}
           onClick={() => { setActiveTab('users'); setSearchTerm(''); }}
@@ -44,7 +44,7 @@ export default function AdminSidebar({
           <Users size={20} weight="bold" />
           Quản lý người dùng
         </button>
-        
+
         <button
           className={`admin-menu-item ${activeTab === 'kyc' ? 'active' : ''}`}
           onClick={() => { setActiveTab('kyc'); setSearchTerm(''); }}
@@ -57,7 +57,7 @@ export default function AdminSidebar({
             </span>
           )}
         </button>
-        
+
         <button
           className={`admin-menu-item ${activeTab === 'wallets' ? 'active' : ''}`}
           onClick={() => { setActiveTab('wallets'); setSearchTerm(''); }}
@@ -65,7 +65,7 @@ export default function AdminSidebar({
           <Wallet size={20} weight="bold" />
           Quản lý Ví
         </button>
-        
+
         <button
           className={`admin-menu-item ${activeTab === 'transactions' ? 'active' : ''}`}
           onClick={() => {
@@ -83,7 +83,7 @@ export default function AdminSidebar({
             </span>
           )}
         </button>
-        
+
         <button
           className={`admin-menu-item ${activeTab === 'logs' ? 'active' : ''}`}
           onClick={() => { setActiveTab('logs'); setSearchTerm(''); }}
@@ -91,13 +91,13 @@ export default function AdminSidebar({
           <Warning size={20} weight="bold" />
           Audit Logs
         </button>
-        
+
         <button
           className={`admin-menu-item ${activeTab === 'settings' ? 'active' : ''}`}
           onClick={() => { setActiveTab('settings'); setSearchTerm(''); }}
         >
           <Gear size={20} weight="bold" />
-          Cài đặt QTV
+          Cài đặt
         </button>
       </nav>
 

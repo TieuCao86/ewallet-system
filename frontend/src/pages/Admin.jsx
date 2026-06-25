@@ -215,7 +215,7 @@ export default function Admin() {
     // Correct PIN: execute action
     const { type, payload } = pendingAction
     executeAuthorizedAction(type, payload)
-    
+
     setPendingAction(null)
     setEnteredPin('')
   }
@@ -264,7 +264,7 @@ export default function Admin() {
       }
 
       setUsers(prev => prev.map(u => u.userId === userId ? { ...u, status: nextStatus } : u))
-      
+
       if (nextStatus === 'LOCKED') {
         setWallets(prev => prev.map(w => w.userId === userId ? { ...w, status: 'FROZEN' } : w))
       }
