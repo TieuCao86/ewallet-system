@@ -70,9 +70,12 @@ function Login() {
         localStorage.setItem('email', data.email)
         localStorage.setItem('role', data.role)
         
-        // Redirect to dashboard (or home for now, as dashboard will be built next)
         alert('Đăng nhập thành công!')
-        navigate('/dashboard')
+        if (data.role === 'ADMIN') {
+          navigate('/admin')
+        } else {
+          navigate('/dashboard')
+        }
       }
     } catch (err) {
       console.error(err)
