@@ -1,7 +1,7 @@
 package com.ewallet.module.transaction.enums;
 
 public enum TransactionType {
-    TOPUP,
+    TOP_UP,
     TRANSFER,
     WITHDRAW
 }
