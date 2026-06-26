@@ -6,11 +6,19 @@ import com.ewallet.module.auth.service.AuthService;
 import com.ewallet.module.user.dto.RegisterRequest;
 import com.ewallet.module.user.entity.User;
 import com.ewallet.module.user.service.UserService;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.time.Duration;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -28,9 +36,52 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public LoginResponse login(
-            @RequestBody LoginRequest request){
+    public ResponseEntity<?> login(
+            @RequestBody LoginRequest request,
+            HttpServletResponse response){
 
-        return authService.login(request);
+        String token = authService.login(request);
+
+        ResponseCookie cookie = ResponseCookie
+                .from("access_token", token)
+                .httpOnly(true)
+                .secure(false) // true khi deploy
+                .sameSite("Lax")
+                .path("/")
+                .maxAge(Duration.ofDays(1))
+                .build();
+
+        response.addHeader(
+                HttpHeaders.SET_COOKIE,
+                cookie.toString()
+        );
+
+        return ResponseEntity.ok(
+                Map.of(
+                        "message",
+                        "Login success"
+                )
+        );
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(
+            HttpServletResponse response) {
+
+        ResponseCookie cookie =
+                ResponseCookie.from("access_token", "")
+                        .httpOnly(true)
+                        .secure(false)
+                        .sameSite("Lax")
+                        .path("/")
+                        .maxAge(0)
+                        .build();
+
+        response.addHeader(
+                HttpHeaders.SET_COOKIE,
+                cookie.toString()
+        );
+
+        return ResponseEntity.ok("Logout success");
     }
 }

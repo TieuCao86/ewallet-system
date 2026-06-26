@@ -1,10 +1,13 @@
 package com.ewallet.module.transaction.controller;
 
 import com.ewallet.module.transaction.dto.TransactionResponse;
+import com.ewallet.module.transaction.dto.TransferRequest;
+import com.ewallet.module.transaction.dto.TransferResponse;
 import com.ewallet.module.transaction.service.TransactionService;
 import com.ewallet.module.user.entity.User;
 import com.ewallet.module.user.service.UserService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -30,6 +33,23 @@ public class TransactionController {
 
         return transactionService.getHistory(
                 user.getId()
+        );
+    }
+
+    @PostMapping("/transfer")
+    public TransferResponse transfer(
+            @Valid @RequestBody TransferRequest request,
+            Authentication authentication
+    ) {
+
+        User sender =
+                userService.getByEmail(
+                        authentication.getName()
+                );
+
+        return transactionService.transfer(
+                sender,
+                request
         );
     }
 }

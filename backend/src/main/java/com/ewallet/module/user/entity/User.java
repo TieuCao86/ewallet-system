@@ -18,13 +18,13 @@ import java.time.LocalDateTime;
 @Builder
 public class User extends BaseEntity {
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 100)
     private String fullName;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true, length = 100)
     private String email;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true, length = 20)
     private String phone;
 
     @Column(nullable = false)
@@ -33,6 +33,7 @@ public class User extends BaseEntity {
     /**
      * PIN giao dịch (nên lưu BCrypt sau này)
      */
+    @Column(length = 255)
     private String pin;
 
     @Enumerated(EnumType.STRING)

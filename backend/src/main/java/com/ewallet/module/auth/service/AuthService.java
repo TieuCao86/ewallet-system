@@ -19,7 +19,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
-    public LoginResponse login(LoginRequest request){
+    public String login(LoginRequest request){
 
         User user = userRepository
                 .findByEmail(request.getEmail())
@@ -38,14 +38,6 @@ public class AuthService {
 
         user.setFailedLoginAttempts(0);
 
-        String token = jwtService.generateToken(user);
-
-        return LoginResponse.builder()
-                .accessToken(token)
-                .tokenType("Bearer")
-                .userId(user.getId())
-                .email(user.getEmail())
-                .role(user.getRole().name())
-                .build();
+        return jwtService.generateToken(user);
     }
 }

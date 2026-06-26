@@ -4,6 +4,7 @@ import com.ewallet.security.jwt.JwtService;
 import com.ewallet.security.service.CustomUserDetailsService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -34,14 +35,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         System.out.println(request.getRequestURI());
         System.out.println(request.getHeader("Authorization"));
 
-        final String authHeader = request.getHeader("Authorization");
+        Cookie[] cookies = request.getCookies();
 
         String token = null;
         String username = null;
 
-        // 1. Check header
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            token = authHeader.substring(7);
+        if (cookies != null) {
+
+            for (Cookie cookie : cookies) {
+
+                if ("access_token".equals(cookie.getName())) {
+                    token = cookie.getValue();
+                    break;
+                }
+            }
+        }
+
+        if (token != null) {
             username = jwtService.extractUsername(token);
         }
 
