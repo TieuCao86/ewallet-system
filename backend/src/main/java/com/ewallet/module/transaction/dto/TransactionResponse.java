@@ -24,5 +24,7 @@ public class TransactionResponse {
 
     private String description;
 
+    private String direction;
+
     private LocalDateTime createdAt;
 }

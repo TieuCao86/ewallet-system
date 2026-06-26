@@ -8,7 +8,11 @@ import java.util.List;
 public interface TransactionRepository
         extends JpaRepository<Transaction, Long> {
 
-    List<Transaction> findBySenderUserIdOrderByCreatedAtDesc(Long userId);
+    List<Transaction>
+    findBySenderUserIdOrReceiverUserIdOrderByCreatedAtDesc(
+            Long senderUserId,
+            Long receiverUserId
+    );
 
     List<Transaction> findByReceiverUserIdOrderByCreatedAtDesc(Long userId);
 }
