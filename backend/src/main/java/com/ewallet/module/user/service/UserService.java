@@ -1,5 +1,7 @@
 package com.ewallet.module.user.service;
 
+import com.ewallet.module.user.dto.ChangePinRequest;
+import com.ewallet.module.user.dto.CreatePinRequest;
 import com.ewallet.module.user.dto.RegisterRequest;
 import com.ewallet.module.user.entity.User;
 import com.ewallet.module.user.enums.KycStatus;
@@ -42,5 +44,52 @@ public class UserService {
     public User getByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    public void createPin(
+            User user,
+            CreatePinRequest request
+    ) {
+
+        if (user.getPin() != null) {
+            throw new RuntimeException("PIN already exists");
+        }
+
+        if (!request.getPin().equals(request.getConfirmPin())) {
+            throw new RuntimeException("PIN confirmation does not match");
+        }
+
+        user.setPin(
+                passwordEncoder.encode(request.getPin())
+        );
+
+        userRepository.save(user);
+    }
+
+    public void changePin(
+            User user,
+            ChangePinRequest request
+    ) {
+
+        if (!passwordEncoder.matches(
+                request.getOldPin(),
+                user.getPin())) {
+
+            throw new RuntimeException("Old PIN is incorrect");
+        }
+
+        if (!request.getNewPin()
+                .equals(request.getConfirmPin())) {
+
+            throw new RuntimeException("PIN confirmation does not match");
+        }
+
+        user.setPin(
+                passwordEncoder.encode(
+                        request.getNewPin()
+                )
+        );
+
+        userRepository.save(user);
     }
 }
