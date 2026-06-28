@@ -1,12 +1,13 @@
 package com.ewallet.module.user.controller;
 
-import com.ewallet.module.user.dto.ChangePinRequest;
-import com.ewallet.module.user.dto.CreatePinRequest;
-import com.ewallet.module.user.dto.UserProfileResponse;
+import com.ewallet.common.dto.ApiResponse;
+import com.ewallet.module.user.dto.*;
 import com.ewallet.module.user.entity.User;
 import com.ewallet.module.user.service.UserService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,50 +20,84 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping("/profile")
-    public UserProfileResponse getProfile(
-            Authentication authentication) {
+    public ResponseEntity<ApiResponse<UserProfileResponse>> getProfile(
+            Authentication authentication
+    ) {
 
-        User user =
-                userService.getByEmail(authentication.getName());
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Profile retrieved successfully",
+                        userService.getProfile(authentication.getName())
+                )
+        );
+    }
 
-        return UserProfileResponse.builder()
-                .id(user.getId())
-                .fullName(user.getFullName())
-                .email(user.getEmail())
-                .phone(user.getPhone())
-                .role(user.getRole().name())
-                .status(user.getStatus().name())
-                .kycStatus(user.getKycStatus().name())
-                .build();
+    @PutMapping("/profile")
+    public ResponseEntity<ApiResponse<UserProfileResponse>> updateProfile(
+            Authentication authentication,
+            @Valid @RequestBody UpdateProfileRequest request
+    ) {
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Profile updated successfully",
+                        userService.updateProfile(
+                                getCurrentUser(authentication),
+                                request
+                        )
+                )
+        );
     }
 
     @PostMapping("/pin")
-    public String createPin(
+    public ResponseEntity<ApiResponse<Void>> createPin(
             Authentication authentication,
-            @RequestBody CreatePinRequest request
+            @Valid @RequestBody CreatePinRequest request
     ) {
 
-        User user = userService.getByEmail(
-                authentication.getName()
+        userService.createPin(
+                getCurrentUser(authentication),
+                request
         );
 
-        userService.createPin(user, request);
-
-        return "PIN created successfully";
+        return ResponseEntity.ok(
+                ApiResponse.success("PIN created successfully")
+        );
     }
 
     @PutMapping("/pin")
-    public String changePin(
+    public ResponseEntity<ApiResponse<Void>> changePin(
             Authentication authentication,
-            @RequestBody ChangePinRequest request
+            @Valid @RequestBody ChangePinRequest request
     ) {
 
-        User user = userService.getByEmail(
-                authentication.getName()
+        userService.changePin(
+                getCurrentUser(authentication),
+                request
         );
 
-        userService.changePin(user, request);
+        return ResponseEntity.ok(
+                ApiResponse.success("PIN changed successfully")
+        );
+    }
 
-        return "PIN changed successfully";
+    @PutMapping("/password")
+    public ResponseEntity<ApiResponse<Void>> changePassword(
+            Authentication authentication,
+            @Valid @RequestBody ChangePasswordRequest request
+    ) {
+
+        userService.changePassword(
+                getCurrentUser(authentication),
+                request
+        );
+
+        return ResponseEntity.ok(
+                ApiResponse.success("Password changed successfully")
+        );
+    }
+
+    private User getCurrentUser(Authentication authentication) {
+        return userService.getByEmail(authentication.getName());
     }
 }
