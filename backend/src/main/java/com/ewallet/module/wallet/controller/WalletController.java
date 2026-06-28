@@ -22,17 +22,8 @@ public class WalletController {
     private final UserService userService;
 
     @GetMapping("/balance")
-    public WalletBalanceResponse getBalance(
-            Authentication authentication){
-
-        System.out.println(authentication);
-        System.out.println(authentication.getName());
-
-        User user =
-                userService.getByEmail(
-                        authentication.getName()
-                );
-
+    public WalletBalanceResponse getBalance(Authentication authentication) {
+        User user = userService.getByEmail(authentication.getName());
         return walletService.getBalance(user.getId());
     }
 
@@ -41,15 +32,7 @@ public class WalletController {
             @Valid @RequestBody TopUpRequest request,
             Authentication authentication
     ) {
-
-        User user =
-                userService.getByEmail(
-                        authentication.getName()
-                );
-
-        return walletService.topUp(
-                user.getId(),
-                request.getAmount()
-        );
+        User user = userService.getByEmail(authentication.getName());
+        return walletService.topUp(user.getId(), request);
     }
 }

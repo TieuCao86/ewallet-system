@@ -1,5 +1,7 @@
 package com.ewallet.module.auth.service;
 
+import com.ewallet.common.exception.InvalidCredentialsException;
+import com.ewallet.common.exception.UserNotFoundException;
 import com.ewallet.module.auth.dto.LoginRequest;
 import com.ewallet.module.auth.dto.LoginResponse;
 import com.ewallet.module.user.entity.User;
@@ -23,20 +25,25 @@ public class AuthService {
 
         User user = userRepository
                 .findByEmail(request.getEmail())
-                .orElseThrow(
-                        () -> new RuntimeException("User not found")
-                );
+                .orElseThrow(() ->
+                        new InvalidCredentialsException(
+                                "Wrong email or password"
+                        ));
 
-        if(!passwordEncoder.matches(
+        if (!passwordEncoder.matches(
                 request.getPassword(),
-                user.getPassword()
-        )){
-            throw new RuntimeException("Wrong password");
+                user.getPassword())) {
+
+            throw new InvalidCredentialsException(
+                    "Wrong email or password"
+            );
         }
 
         user.setLastLogin(LocalDateTime.now());
 
         user.setFailedLoginAttempts(0);
+
+        userRepository.save(user);
 
         return jwtService.generateToken(user);
     }

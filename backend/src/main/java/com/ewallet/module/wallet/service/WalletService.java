@@ -1,11 +1,9 @@
 package com.ewallet.module.wallet.service;
 
+import com.ewallet.common.exception.WalletNotFoundException;
 import com.ewallet.module.transaction.entity.Transaction;
-import com.ewallet.module.transaction.enums.TransactionStatus;
-import com.ewallet.module.transaction.enums.TransactionType;
-import com.ewallet.module.transaction.repository.TransactionRepository;
 import com.ewallet.module.transaction.service.TransactionService;
-import com.ewallet.module.transaction.util.TransactionCodeGenerator;
+import com.ewallet.module.wallet.dto.TopUpRequest;
 import com.ewallet.module.wallet.dto.TopUpResponse;
 import com.ewallet.module.wallet.dto.WalletBalanceResponse;
 import com.ewallet.module.wallet.entity.Wallet;
@@ -21,18 +19,13 @@ import java.math.BigDecimal;
 public class WalletService {
 
     private final WalletRepository walletRepository;
-    private final TransactionRepository transactionRepository;
-
     private final TransactionService transactionService;
 
-    private final TransactionCodeGenerator transactionCodeGenerator;
-
-    public WalletBalanceResponse getBalance(Long userId){
-
-        Wallet wallet = walletRepository
-                .findByUserId(userId)
-                .orElseThrow(() ->
-                        new RuntimeException("Wallet not found"));
+    @Transactional(readOnly = true)
+    public WalletBalanceResponse getBalance(Long userId) {
+        // Sử dụng hàm KHÔNG LOCK để tăng tốc độ xem số dư
+        Wallet wallet = walletRepository.findWalletByUserId(userId)
+                .orElseThrow(() -> new WalletNotFoundException("Wallet not found"));
 
         return WalletBalanceResponse.builder()
                 .walletNumber(wallet.getWalletNumber())
@@ -41,53 +34,34 @@ public class WalletService {
     }
 
     @Transactional
-    public TopUpResponse topUp(
-            Long userId,
-            BigDecimal amount
-    ) {
+    public TopUpResponse topUp(Long userId, TopUpRequest request) {
+        // Sử dụng hàm CÓ LOCK để bảo vệ dữ liệu khi nạp tiền, tránh race condition
+        Wallet wallet = walletRepository.findByUserIdForUpdate(userId)
+                .orElseThrow(() -> new WalletNotFoundException("Wallet not found"));
 
-        if (amount == null ||
-                amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new RuntimeException(
-                    "Amount must be greater than 0");
-        }
+        BigDecimal topUpAmount = request.getAmount();
+        wallet.setBalance(wallet.getBalance().add(topUpAmount));
+        walletRepository.save(wallet);
 
-        Wallet wallet = walletRepository
-                .findByUserId(userId)
-                .orElseThrow(() ->
-                        new RuntimeException("Wallet not found"));
-
-        wallet.setBalance(
-                wallet.getBalance().add(amount)
-        );
-
-        Transaction transaction =
-                transactionService.createTopUpTransaction(
-                        userId,
-                        amount
-                );
+        // Tạo lịch sử giao dịch thành công
+        Transaction transaction = transactionService.createTopUpTransaction(userId, topUpAmount);
 
         return TopUpResponse.builder()
                 .walletNumber(wallet.getWalletNumber())
-                .amount(amount)
+                .amount(topUpAmount)
                 .newBalance(wallet.getBalance())
-                .transactionCode(
-                        transaction.getTransactionCode()
-                )
+                .transactionCode(transaction.getTransactionCode())
                 .build();
     }
 
-    public void createWallet(Long userId){
-
+    @Transactional
+    public void createWallet(Long userId) {
         Wallet wallet = Wallet.builder()
                 .userId(userId)
-                .walletNumber(generateWalletNumber())
+                .walletNumber("WAL" + (System.currentTimeMillis() % 100000000000L))
+                .balance(BigDecimal.ZERO) // Luôn khởi tạo là 0 để tránh lỗi NullPointerException
                 .build();
 
         walletRepository.save(wallet);
-    }
-
-    private String generateWalletNumber() {
-        return "WAL" + System.currentTimeMillis();
     }
 }

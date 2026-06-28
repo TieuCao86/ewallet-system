@@ -12,6 +12,7 @@ import com.ewallet.module.wallet.service.WalletService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -19,10 +20,17 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-
     private final WalletService walletService;
 
-    public User register(RegisterRequest request){
+    @Transactional
+    public User register(RegisterRequest request) {
+        // Kiểm tra trùng lặp thông tin trước khi lưu
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new IllegalArgumentException("Email is already registered");
+        }
+        if (userRepository.existsByPhone(request.getPhone())) {
+            throw new IllegalArgumentException("Phone number is already registered");
+        }
 
         User user = User.builder()
                 .fullName(request.getFullName())
@@ -36,60 +44,43 @@ public class UserService {
 
         User savedUser = userRepository.save(user);
 
+        // Bắt buộc phải bọc trong @Transactional để hành động này an toàn
         walletService.createWallet(savedUser.getId());
 
         return savedUser;
     }
 
+    @Transactional(readOnly = true)
     public User getByEmail(String email) {
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
     }
 
-    public void createPin(
-            User user,
-            CreatePinRequest request
-    ) {
-
+    @Transactional
+    public void createPin(User user, CreatePinRequest request) {
         if (user.getPin() != null) {
-            throw new RuntimeException("PIN already exists");
+            throw new IllegalStateException("PIN already exists");
         }
 
         if (!request.getPin().equals(request.getConfirmPin())) {
-            throw new RuntimeException("PIN confirmation does not match");
+            throw new IllegalArgumentException("PIN confirmation does not match");
         }
 
-        user.setPin(
-                passwordEncoder.encode(request.getPin())
-        );
-
+        user.setPin(passwordEncoder.encode(request.getPin()));
         userRepository.save(user);
     }
 
-    public void changePin(
-            User user,
-            ChangePinRequest request
-    ) {
-
-        if (!passwordEncoder.matches(
-                request.getOldPin(),
-                user.getPin())) {
-
-            throw new RuntimeException("Old PIN is incorrect");
+    @Transactional
+    public void changePin(User user, ChangePinRequest request) {
+        if (!passwordEncoder.matches(request.getOldPin(), user.getPin())) {
+            throw new IllegalArgumentException("Old PIN is incorrect");
         }
 
-        if (!request.getNewPin()
-                .equals(request.getConfirmPin())) {
-
-            throw new RuntimeException("PIN confirmation does not match");
+        if (!request.getNewPin().equals(request.getConfirmPin())) {
+            throw new IllegalArgumentException("PIN confirmation does not match");
         }
 
-        user.setPin(
-                passwordEncoder.encode(
-                        request.getNewPin()
-                )
-        );
-
+        user.setPin(passwordEncoder.encode(request.getNewPin()));
         userRepository.save(user);
     }
 }
