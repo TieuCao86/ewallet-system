@@ -1,5 +1,6 @@
 package com.ewallet.module.wallet.controller;
 
+import com.ewallet.common.dto.ApiResponse;
 import com.ewallet.module.user.entity.User;
 import com.ewallet.module.user.service.UserService;
 import com.ewallet.module.wallet.dto.TopUpRequest;
@@ -9,6 +10,7 @@ import com.ewallet.module.wallet.service.WalletService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,17 +24,37 @@ public class WalletController {
     private final UserService userService;
 
     @GetMapping("/balance")
-    public WalletBalanceResponse getBalance(Authentication authentication) {
-        User user = userService.getByEmail(authentication.getName());
-        return walletService.getBalance(user.getId());
+    public ResponseEntity<ApiResponse<WalletBalanceResponse>> getBalance(
+            Authentication authentication
+    ) {
+
+        User user = getCurrentUser(authentication);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Wallet balance retrieved successfully",
+                        walletService.getBalance(user.getId())
+                )
+        );
     }
 
     @PostMapping("/topup")
-    public TopUpResponse topUp(
+    public ResponseEntity<ApiResponse<TopUpResponse>> topUp(
             @Valid @RequestBody TopUpRequest request,
             Authentication authentication
     ) {
-        User user = userService.getByEmail(authentication.getName());
-        return walletService.topUp(user.getId(), request);
+
+        User user = getCurrentUser(authentication);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Top up successful",
+                        walletService.topUp(user.getId(), request)
+                )
+        );
+    }
+
+    private User getCurrentUser(Authentication authentication) {
+        return userService.getByEmail(authentication.getName());
     }
 }

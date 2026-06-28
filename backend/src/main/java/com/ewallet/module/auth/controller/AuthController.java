@@ -1,13 +1,16 @@
 package com.ewallet.module.auth.controller;
 
+import com.ewallet.common.dto.ApiResponse;
 import com.ewallet.module.auth.dto.LoginRequest;
 import com.ewallet.module.auth.dto.LoginResponse;
 import com.ewallet.module.auth.service.AuthService;
 import com.ewallet.module.user.dto.RegisterRequest;
+import com.ewallet.module.user.dto.UserProfileResponse;
 import com.ewallet.module.user.entity.User;
 import com.ewallet.module.user.service.UserService;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
@@ -29,10 +32,16 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/register")
-    public User register(
-            @RequestBody RegisterRequest request){
+    public ResponseEntity<ApiResponse<UserProfileResponse>> register(
+            @Valid @RequestBody RegisterRequest request
+    ) {
 
-        return userService.register(request);
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Register successfully",
+                        userService.register(request)
+                )
+        );
     }
 
     @PostMapping("/login")
@@ -57,10 +66,7 @@ public class AuthController {
         );
 
         return ResponseEntity.ok(
-                Map.of(
-                        "message",
-                        "Login success"
-                )
+                ApiResponse.success("Login successfully")
         );
     }
 
@@ -82,6 +88,8 @@ public class AuthController {
                 cookie.toString()
         );
 
-        return ResponseEntity.ok("Logout success");
+        return ResponseEntity.ok(
+                ApiResponse.success("Logout successfully")
+        );
     }
 }

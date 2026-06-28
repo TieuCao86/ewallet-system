@@ -1,5 +1,8 @@
 package com.ewallet.module.user.dto;
 
+import com.ewallet.module.user.enums.Role;
+import com.ewallet.module.user.enums.UserStatus;
+import com.ewallet.module.user.enums.KycStatus;
 import lombok.Builder;
 import lombok.Data;
 
@@ -12,7 +15,7 @@ public class UserProfileResponse {
     private String email;
     private String phone;
 
-    private String role;
-    private String status;
-    private String kycStatus;
+    private Role role;
+    private UserStatus status;
+    private KycStatus kycStatus;
 }

@@ -1,8 +1,8 @@
 package com.ewallet.module.user.service;
 
-import com.ewallet.module.user.dto.ChangePinRequest;
-import com.ewallet.module.user.dto.CreatePinRequest;
-import com.ewallet.module.user.dto.RegisterRequest;
+import com.ewallet.common.exception.InvalidCredentialsException;
+import com.ewallet.common.exception.UserNotFoundException;
+import com.ewallet.module.user.dto.*;
 import com.ewallet.module.user.entity.User;
 import com.ewallet.module.user.enums.KycStatus;
 import com.ewallet.module.user.enums.Role;
@@ -23,11 +23,12 @@ public class UserService {
     private final WalletService walletService;
 
     @Transactional
-    public User register(RegisterRequest request) {
-        // Kiểm tra trùng lặp thông tin trước khi lưu
+    public UserProfileResponse register(RegisterRequest request) {
+
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new IllegalArgumentException("Email is already registered");
         }
+
         if (userRepository.existsByPhone(request.getPhone())) {
             throw new IllegalArgumentException("Phone number is already registered");
         }
@@ -44,10 +45,86 @@ public class UserService {
 
         User savedUser = userRepository.save(user);
 
-        // Bắt buộc phải bọc trong @Transactional để hành động này an toàn
         walletService.createWallet(savedUser.getId());
 
-        return savedUser;
+        return toUserProfile(savedUser);
+    }
+
+    @Transactional(readOnly = true)
+    public UserProfileResponse getProfile(String email) {
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        return UserProfileResponse.builder()
+                .id(user.getId())
+                .fullName(user.getFullName())
+                .email(user.getEmail())
+                .phone(user.getPhone())
+                .role(user.getRole())
+                .status(user.getStatus())
+                .kycStatus(user.getKycStatus())
+                .build();
+    }
+
+    @Transactional
+    public UserProfileResponse updateProfile(
+            User user,
+            UpdateProfileRequest request
+    ) {
+
+        user.setFullName(request.getFullName());
+
+        return UserProfileResponse.builder()
+                .id(user.getId())
+                .fullName(user.getFullName())
+                .email(user.getEmail())
+                .phone(user.getPhone())
+                .role(user.getRole())
+                .status(user.getStatus())
+                .kycStatus(user.getKycStatus())
+                .build();
+    }
+
+    @Transactional
+    public void changePassword(
+            User user,
+            ChangePasswordRequest request
+    ) {
+
+        if (!passwordEncoder.matches(
+                request.getOldPassword(),
+                user.getPassword()
+        )) {
+
+            throw new InvalidCredentialsException(
+                    "Old password is incorrect"
+            );
+        }
+
+        if (!request.getNewPassword()
+                .equals(request.getConfirmPassword())) {
+
+            throw new InvalidCredentialsException(
+                    "Password confirmation does not match"
+            );
+        }
+
+        if (passwordEncoder.matches(
+                request.getNewPassword(),
+                user.getPassword()
+        )) {
+
+            throw new InvalidCredentialsException(
+                    "New password must be different from old password"
+            );
+        }
+
+        user.setPassword(
+                passwordEncoder.encode(
+                        request.getNewPassword()
+                )
+        );
     }
 
     @Transactional(readOnly = true)
@@ -82,5 +159,17 @@ public class UserService {
 
         user.setPin(passwordEncoder.encode(request.getNewPin()));
         userRepository.save(user);
+    }
+
+    private UserProfileResponse toUserProfile(User user) {
+        return UserProfileResponse.builder()
+                .id(user.getId())
+                .fullName(user.getFullName())
+                .email(user.getEmail())
+                .phone(user.getPhone())
+                .role(user.getRole())
+                .status(user.getStatus())
+                .kycStatus(user.getKycStatus())
+                .build();
     }
 }
