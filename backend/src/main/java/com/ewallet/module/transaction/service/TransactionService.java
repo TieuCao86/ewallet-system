@@ -1,5 +1,8 @@
 package com.ewallet.module.transaction.service;
 
+import com.ewallet.common.exception.InsufficientBalanceException;
+import com.ewallet.common.exception.InvalidPinException;
+import com.ewallet.common.exception.NotFoundException;
 import com.ewallet.module.transaction.dto.TransactionResponse;
 import com.ewallet.module.transaction.dto.TransferRequest;
 import com.ewallet.module.transaction.dto.TransferResponse;
@@ -13,6 +16,7 @@ import com.ewallet.module.user.repository.UserRepository;
 import com.ewallet.module.wallet.entity.Wallet;
 import com.ewallet.module.wallet.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,18 +30,12 @@ public class TransactionService {
     private final TransactionRepository transactionRepository;
     private final UserRepository userRepository;
     private final WalletRepository walletRepository;
-
     private final TransactionCodeGenerator transactionCodeGenerator;
+    private final PasswordEncoder passwordEncoder;
 
-    public Transaction createTopUpTransaction(
-            Long userId,
-            BigDecimal amount
-    ) {
-
+    public Transaction createTopUpTransaction(Long userId, BigDecimal amount) {
         Transaction transaction = Transaction.builder()
-                .transactionCode(
-                        transactionCodeGenerator.generate()
-                )
+                .transactionCode(transactionCodeGenerator.generate())
                 .senderUserId(userId)
                 .amount(amount)
                 .fee(BigDecimal.ZERO)
@@ -49,27 +47,16 @@ public class TransactionService {
         return transactionRepository.save(transaction);
     }
 
-    public List<TransactionResponse> getHistory(Long userId){
-
-        List<Transaction> transactions =
-                transactionRepository
-                        .findBySenderUserIdOrReceiverUserIdOrderByCreatedAtDesc(
-                                userId,
-                                userId
-                        );
+    @Transactional(readOnly = true)
+    public List<TransactionResponse> getHistory(Long userId) {
+        List<Transaction> transactions = transactionRepository
+                .findBySenderUserIdOrReceiverUserIdOrderByCreatedAtDesc(userId, userId);
 
         return transactions.stream()
                 .map(tx -> {
-
                     String direction = "SYSTEM";
-
                     if (tx.getType() == TransactionType.TRANSFER) {
-
-                        if (userId.equals(tx.getSenderUserId())) {
-                            direction = "SENT";
-                        } else {
-                            direction = "RECEIVED";
-                        }
+                        direction = userId.equals(tx.getSenderUserId()) ? "SENT" : "RECEIVED";
                     }
 
                     return TransactionResponse.builder()
@@ -87,81 +74,77 @@ public class TransactionService {
     }
 
     @Transactional
-    public TransferResponse transfer(
-            User sender,
-            TransferRequest request
-    ) {
-        if (request.getAmount() == null
-                || request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+    public TransferResponse transfer(User sender, TransferRequest request) {
+        // 1. Kiểm tra mã PIN bảo mật
+        validatePin(sender, request.getPin());
 
-            throw new RuntimeException(
-                    "Amount must be greater than 0"
-            );
-        }
-
-        User receiver = userRepository
-                .findByPhone(request.getReceiverPhone())
-                .orElseThrow(() ->
-                        new RuntimeException("Receiver not found"));
+        // 2. Tìm người nhận
+        User receiver = userRepository.findByPhone(request.getReceiverPhone())
+                .orElseThrow(() -> new NotFoundException("Receiver not found"));
 
         if (sender.getId().equals(receiver.getId())) {
-            throw new RuntimeException(
-                    "Cannot transfer to yourself"
-            );
+            throw new IllegalArgumentException("Cannot transfer to yourself");
         }
 
-        Wallet senderWallet = walletRepository
-                .findByUserId(sender.getId())
-                .orElseThrow(() ->
-                        new RuntimeException("Sender wallet not found"));
+        // 3. Lock Ordering: Sắp xếp thứ tự gọi DB để tránh tuyệt đối lỗi Deadlock
+        Wallet senderWallet;
+        Wallet receiverWallet;
 
-        Wallet receiverWallet = walletRepository
-                .findByUserId(receiver.getId())
-                .orElseThrow(() ->
-                        new RuntimeException("Receiver wallet not found"));
-
-        if (senderWallet.getBalance()
-                .compareTo(request.getAmount()) < 0) {
-
-            throw new RuntimeException(
-                    "Insufficient balance"
-            );
+        if (sender.getId() < receiver.getId()) {
+            senderWallet = getWalletForUpdate(sender.getId());
+            receiverWallet = getWalletForUpdate(receiver.getId());
+        } else {
+            receiverWallet = getWalletForUpdate(receiver.getId());
+            senderWallet = getWalletForUpdate(sender.getId());
         }
 
-        senderWallet.setBalance(
-                senderWallet.getBalance()
-                        .subtract(request.getAmount())
-        );
+        // 4. Kiểm tra và cập nhật số dư
+        if (senderWallet.getBalance().compareTo(request.getAmount()) < 0) {
+            throw new InsufficientBalanceException("Insufficient balance");
+        }
 
-        receiverWallet.setBalance(
-                receiverWallet.getBalance()
-                        .add(request.getAmount())
-        );
+        senderWallet.setBalance(senderWallet.getBalance().subtract(request.getAmount()));
+        receiverWallet.setBalance(receiverWallet.getBalance().add(request.getAmount()));
 
-        String transactionCode =
-                transactionCodeGenerator.generate();
+        // Lưu trạng thái số dư mới
+        walletRepository.save(senderWallet);
+        walletRepository.save(receiverWallet);
 
-        Transaction transaction =
-                Transaction.builder()
-                        .transactionCode(transactionCode)
-                        .senderUserId(sender.getId())
-                        .receiverUserId(receiver.getId())
-                        .amount(request.getAmount())
-                        .fee(BigDecimal.ZERO)
-                        .type(TransactionType.TRANSFER)
-                        .status(TransactionStatus.SUCCESS)
-                        .description(request.getDescription())
-                        .build();
+        // 5. Ghi nhận giao dịch lịch sử
+        Transaction transaction = Transaction.builder()
+                .transactionCode(transactionCodeGenerator.generate())
+                .senderUserId(sender.getId())
+                .receiverUserId(receiver.getId())
+                .amount(request.getAmount())
+                .fee(BigDecimal.ZERO)
+                .type(TransactionType.TRANSFER)
+                .status(TransactionStatus.SUCCESS)
+                .description(request.getDescription())
+                .build();
 
         transactionRepository.save(transaction);
 
         return TransferResponse.builder()
-                .transactionCode(transactionCode)
+                .transactionCode(transaction.getTransactionCode())
                 .senderPhone(sender.getPhone())
                 .receiverPhone(receiver.getPhone())
                 .amount(request.getAmount())
                 .senderBalance(senderWallet.getBalance())
                 .receiverBalance(receiverWallet.getBalance())
                 .build();
+    }
+
+    private void validatePin(User sender, String rawPin) {
+        if (sender.getPin() == null) {
+            throw new InvalidPinException("Please create transaction PIN first");
+        }
+        if (!passwordEncoder.matches(rawPin, sender.getPin())) {
+            throw new InvalidPinException("Invalid transaction PIN");
+        }
+    }
+
+    private Wallet getWalletForUpdate(Long userId) {
+        return walletRepository.findByUserIdForUpdate(userId)
+                .orElseThrow(() -> new NotFoundException("Wallet not found for user: " + userId));
     }
 }
