@@ -197,37 +197,36 @@ function Dashboard() {
   }
 
   // Fetch Live Data on mount
+  // Fetch Live Data on mount
   useEffect(() => {
     const fetchData = async () => {
-      const token = localStorage.getItem('accessToken')
-      const userId = localStorage.getItem('userId')
-
-      if (!token || !userId) {
-        setLoading(false)
-        return
-      }
-
+      // Do dùng HttpOnly Cookie, ta không check accessToken trong localStorage nữa
       try {
-        // 1. Fetch Profile
+        // 1. Fetch Profile từ DB thật
         const profileRes = await fetch('/api/users/profile', {
-          headers: { 'Authorization': `Bearer ${token}` }
+          method: 'GET',
+          // credentials: 'include' tự động được fetch gửi kèm nếu cấu hình ở file setup/proxy
         })
-        const profileData = await profileRes.json()
+        const resProfileData = await profileRes.json()
 
-        if (profileRes.ok && !profileData.errorCode) {
+        if (profileRes.ok && resProfileData.success && resProfileData.data) {
+          const dbUser = resProfileData.data
+
           const fetchedProfile = {
-            fullName: profileData.fullName || 'Nguyễn Bá Việt',
-            email: profileData.email || 'vietnb@vtpay.local',
-            phone: profileData.phone || '0987654321',
-            citizenId: profileData.citizenId || '001096008686',
-            kycStatus: profileData.kycStatus || 'APPROVED',
-            status: 'ACTIVE',
-            dob: profileData.dob || '1996-08-06',
-            gender: profileData.gender || 'Nam',
-            address: profileData.address || '123 Đường Láng, Quận Đống Đa, Hà Nội',
-            vipLevel: profileData.vipLevel || 'Gold'
+            fullName: dbUser.fullName,
+            email: dbUser.email,
+            phone: dbUser.phone || 'Chưa cập nhật',
+            citizenId: '001096008686',
+            kycStatus: dbUser.kycStatus || 'APPROVED',
+            status: dbUser.status || 'ACTIVE',
+            dob: '2004-01-01',
+            gender: 'Nam',
+            address: 'Thành phố Hồ Chí Minh, Việt Nam',
+            vipLevel: dbUser.role === 'ADMIN' ? 'Administrator' : 'Vip Gold'
           }
+
           setUserProfile(fetchedProfile)
+
           setEditProfile({
             fullName: fetchedProfile.fullName,
             email: fetchedProfile.email,
@@ -237,32 +236,30 @@ function Dashboard() {
             gender: fetchedProfile.gender,
             address: fetchedProfile.address
           })
+
           setIsLive(true)
         }
 
         // 2. Fetch Wallet Balance
-        const walletRes = await fetch('/api/wallets', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
-        const walletData = await walletRes.json()
+        const walletRes = await fetch('/api/wallets')
+        const resWalletData = await walletRes.json()
 
-        if (walletRes.ok && !walletData.errorCode) {
+        if (walletRes.ok && resWalletData.success && resWalletData.data) {
+          const dbWallet = resWalletData.data
           setWallet({
-            balance: walletData.balance || 42800000,
-            walletId: walletData.walletId || 86868686,
-            currency: walletData.currency || 'đ',
-            lastLogin: '2026-06-25 00:47:26'
+            balance: dbWallet.balance !== undefined ? dbWallet.balance : 42800000,
+            walletId: dbWallet.walletId || 86868686,
+            currency: dbWallet.currency || 'đ',
+            lastLogin: dbWallet.lastLogin || '2026-06-25 00:47:26'
           })
         }
 
         // 3. Fetch Transactions History
-        const transRes = await fetch('/api/transactions/history', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
-        const transData = await transRes.json()
+        const transRes = await fetch('/api/transactions/history')
+        const resTransData = await transRes.json()
 
-        if (transRes.ok && !transData.errorCode && Array.isArray(transData.transactions)) {
-          setTransactions(transData.transactions.map(t => ({
+        if (transRes.ok && resTransData.success && Array.isArray(resTransData.data)) {
+          setTransactions(resTransData.data.map(t => ({
             id: t.transactionId || generateRandomId('TX'),
             recipient: t.type === 'TOPUP' ? 'Nạp tiền ngân hàng' : (t.type === 'WITHDRAW' ? 'Rút tiền ngân hàng' : t.recipientPhone || 'Ví VT Pay'),
             amount: t.type === 'TOPUP' ? t.amount : -t.amount,

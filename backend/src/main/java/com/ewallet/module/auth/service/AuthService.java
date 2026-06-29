@@ -21,30 +21,27 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
-    public String login(LoginRequest request){
-
+    public LoginResponse login(LoginRequest request) {
         User user = userRepository
                 .findByEmail(request.getEmail())
-                .orElseThrow(() ->
-                        new InvalidCredentialsException(
-                                "Wrong email or password"
-                        ));
+                .orElseThrow(() -> new InvalidCredentialsException("Wrong email or password"));
 
-        if (!passwordEncoder.matches(
-                request.getPassword(),
-                user.getPassword())) {
-
-            throw new InvalidCredentialsException(
-                    "Wrong email or password"
-            );
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new InvalidCredentialsException("Wrong email or password");
         }
 
         user.setLastLogin(LocalDateTime.now());
-
         user.setFailedLoginAttempts(0);
-
         userRepository.save(user);
 
-        return jwtService.generateToken(user);
+        String token = jwtService.generateToken(user);
+
+        // Trả về DTO (để trống accessToken và tokenType vì sẽ đưa vào Cookie ở Controller)
+        return LoginResponse.builder()
+                .accessToken(token) // Tạm thời bỏ token vào đây để Controller lấy ra cấu hình Cookie
+                .userId(user.getId())
+                .email(user.getEmail())
+                .role(user.getRole().name())
+                .build();
     }
 }

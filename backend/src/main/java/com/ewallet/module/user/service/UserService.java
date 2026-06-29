@@ -4,7 +4,7 @@ import com.ewallet.common.exception.InvalidCredentialsException;
 import com.ewallet.common.exception.UserNotFoundException;
 import com.ewallet.module.user.dto.*;
 import com.ewallet.module.user.entity.User;
-import com.ewallet.module.user.enums.KycStatus;
+import com.ewallet.module.kyc.enums.KycStatus;
 import com.ewallet.module.user.enums.Role;
 import com.ewallet.module.user.enums.UserStatus;
 import com.ewallet.module.user.repository.UserRepository;

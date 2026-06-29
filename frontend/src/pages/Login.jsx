@@ -46,13 +46,13 @@ function Login() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email, password }),
+        credentials: 'include',
       })
-      
-      const data = await response.json()
-      
-      if (!response.ok || data.errorCode) {
-        // Handle error codes returned from the backend
-        const code = data.errorCode || response.status
+
+      const resData = await response.json()
+
+      if (!response.ok || resData.success === false || resData.errorCode) {
+        const code = resData.errorCode || response.status
         if (code === 1001 || code === 2001) {
           setError('Email hoặc mật khẩu không chính xác.')
         } else if (code === 1002) {
@@ -63,15 +63,16 @@ function Login() {
           setError('Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.')
         }
       } else {
-        // Login success
-        localStorage.setItem('accessToken', data.accessToken)
-        localStorage.setItem('tokenType', data.tokenType || 'Bearer')
-        localStorage.setItem('userId', data.userId)
-        localStorage.setItem('email', data.email)
-        localStorage.setItem('role', data.role)
-        
+        // Đăng nhập thành công -> Lấy thông tin user từ trường 'data'
+        const userData = resData.data
+
+        // Bỏ việc lưu accessToken và tokenType
+        localStorage.setItem('userId', userData.userId)
+        localStorage.setItem('email', userData.email)
+        localStorage.setItem('role', userData.role)
+
         alert('Đăng nhập thành công!')
-        if (data.role === 'ADMIN') {
+        if (userData.role === 'ADMIN') {
           navigate('/admin')
         } else {
           navigate('/dashboard')

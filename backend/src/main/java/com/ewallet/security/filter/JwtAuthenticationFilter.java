@@ -31,38 +31,41 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-        System.out.println("===== JWT FILTER =====");
-        System.out.println(request.getRequestURI());
-        System.out.println(request.getHeader("Authorization"));
+        // Log phục vụ debug khi gọi từ Frontend
+        System.out.println("===== [VT Pay] JWT FILTER =====");
+        System.out.println("Request URI: " + request.getRequestURI());
 
         Cookie[] cookies = request.getCookies();
-
         String token = null;
         String username = null;
 
+        // 1. Trích xuất token từ danh sách Cookies
         if (cookies != null) {
-
             for (Cookie cookie : cookies) {
-
                 if ("access_token".equals(cookie.getName())) {
                     token = cookie.getValue();
+                    System.out.println("Found access_token in Cookie!");
                     break;
                 }
             }
         }
 
+        // 2. Trích xuất username từ JWT Token nhận được
         if (token != null) {
-            username = jwtService.extractUsername(token);
+            try {
+                username = jwtService.extractUsername(token);
+            } catch (Exception e) {
+                System.out.println("Token không hợp lệ hoặc đã hết hạn: " + e.getMessage());
+            }
         }
 
-        // 2. Nếu có username và chưa login
-        if (username != null &&
-                SecurityContextHolder.getContext().getAuthentication() == null) {
+        // 3. Tiến hành xác thực nếu có username và chưa tồn tại phiên đăng nhập trong SecurityContext
+        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-            UserDetails userDetails =
-                    userDetailsService.loadUserByUsername(username);
+            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-            // 3. Validate token
+            // Kiểm tra tính hợp lệ của token (Nếu hàm của bạn chỉ cần truyền token thì giữ nguyên,
+            // còn nếu hàm yêu cầu truyền cả userDetails thì sửa thành: jwtService.isTokenValid(token, userDetails))
             if (jwtService.isTokenValid(token)) {
 
                 UsernamePasswordAuthenticationToken authToken =
@@ -73,12 +76,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         );
 
                 authToken.setDetails(
-                        new WebAuthenticationDetailsSource()
-                                .buildDetails(request)
+                        new WebAuthenticationDetailsSource().buildDetails(request)
                 );
 
-                SecurityContextHolder.getContext()
-                        .setAuthentication(authToken);
+                SecurityContextHolder.getContext().setAuthentication(authToken);
+                System.out.println("Xác thực thành công cho user: " + username);
             }
         }
 

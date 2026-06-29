@@ -2,7 +2,7 @@ package com.ewallet.module.user.dto;
 
 import com.ewallet.module.user.enums.Role;
 import com.ewallet.module.user.enums.UserStatus;
-import com.ewallet.module.user.enums.KycStatus;
+import com.ewallet.module.kyc.enums.KycStatus;
 import lombok.Builder;
 import lombok.Data;
 
