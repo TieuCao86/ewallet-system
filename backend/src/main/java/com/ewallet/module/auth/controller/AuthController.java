@@ -45,28 +45,33 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(
+    public ResponseEntity<ApiResponse<LoginResponse>> login(
             @RequestBody LoginRequest request,
-            HttpServletResponse response){
+            HttpServletResponse response) {
 
-        String token = authService.login(request);
+        LoginResponse loginResponse = authService.login(request);
 
+        // Trích xuất token để nạp vào Cookie
+        String token = loginResponse.getAccessToken();
+
+        loginResponse.setAccessToken(null);
+        loginResponse.setTokenType(null);
+
+        // Cấu hình HttpOnly Cookie
         ResponseCookie cookie = ResponseCookie
                 .from("access_token", token)
                 .httpOnly(true)
-                .secure(false) // true khi deploy
+                .secure(false) // Đổi thành true khi deploy lên production (yêu cầu HTTPS)
                 .sameSite("Lax")
                 .path("/")
                 .maxAge(Duration.ofDays(1))
                 .build();
 
-        response.addHeader(
-                HttpHeaders.SET_COOKIE,
-                cookie.toString()
-        );
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
+        // 4. Trả về thông tin User (userId, email, role) cho FE điều hướng
         return ResponseEntity.ok(
-                ApiResponse.success("Login successfully")
+                ApiResponse.success("Login successfully", loginResponse)
         );
     }
 
