@@ -1,5 +1,6 @@
 package com.ewallet.module.user.service;
 
+import com.ewallet.common.exception.BusinessException;
 import com.ewallet.common.exception.InvalidCredentialsException;
 import com.ewallet.common.exception.UserNotFoundException;
 import com.ewallet.module.user.dto.*;
@@ -26,11 +27,11 @@ public class UserService {
     public UserProfileResponse register(RegisterRequest request) {
 
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new IllegalArgumentException("Email is already registered");
+            throw new BusinessException("Email is already registered");
         }
 
         if (userRepository.existsByPhone(request.getPhone())) {
-            throw new IllegalArgumentException("Phone number is already registered");
+            throw new BusinessException("Phone number is already registered");
         }
 
         User user = User.builder()

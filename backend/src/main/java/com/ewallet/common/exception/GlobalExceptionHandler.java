@@ -23,6 +23,7 @@ public class GlobalExceptionHandler {
         ApiError error = ApiError.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
+                .errorCode(4000) // Lỗi validate dữ liệu chung
                 .message(errorMessage)
                 .build();
 
@@ -34,6 +35,7 @@ public class GlobalExceptionHandler {
         ApiError error = ApiError.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.NOT_FOUND.value())
+                .errorCode(4000) // Lỗi validate dữ liệu chung
                 .message(ex.getMessage())
                 .build();
 
@@ -45,6 +47,7 @@ public class GlobalExceptionHandler {
         ApiError error = ApiError.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.UNAUTHORIZED.value())
+                .errorCode(1001) // Email hoặc mật khẩu không chính xác
                 .message(ex.getMessage())
                 .build();
 
@@ -53,9 +56,23 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiError> handleBusinessBadRequestException(RuntimeException ex) {
+        int code = 4000; // Mã lỗi business chung mặc định
+        String msg = ex.getMessage() != null ? ex.getMessage().toLowerCase() : "";
+
+        if (msg.contains("email")) {
+            code = 2002; // Trùng địa chỉ email
+        } else if (msg.contains("phone") || msg.contains("số điện thoại")) {
+            code = 2003; // Trùng số điện thoại
+        } else if (msg.contains("khóa") || msg.contains("locked")) {
+            code = 1002; // Tài khoản bị khóa
+        } else if (msg.contains("vô hiệu") || msg.contains("disabled")) {
+            code = 1003; // Tài khoản bị vô hiệu hóa
+        }
+
         ApiError error = ApiError.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
+                .errorCode(code)
                 .message(ex.getMessage())
                 .build();
 
@@ -68,6 +85,7 @@ public class GlobalExceptionHandler {
         ApiError error = ApiError.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                .errorCode(5000) // Hệ thống lỗi không xác định
                 .message("An unexpected error occurred. Please try again later.")
                 .build();
 

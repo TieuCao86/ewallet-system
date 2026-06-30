@@ -62,21 +62,24 @@ function Register() {
         },
         body: JSON.stringify({ fullName, email, phone, password }),
       })
-      
-      const data = await response.json()
-      
-      if (!response.ok || data.errorCode) {
-        // Handle common backend errors or validation failure
-        const code = data.errorCode || response.status
-        if (code === 2002 || (data.message && data.message.includes('email'))) {
+
+      const resData = await response.json()
+
+      if (!response.ok) {
+        const code = resData.errorCode
+
+        if (code === 2002) {
           setError('Địa chỉ email này đã được sử dụng cho một tài khoản khác.')
-        } else if (code === 2003 || (data.message && data.message.includes('phone'))) {
+        } else if (code === 2003) {
           setError('Số điện thoại này đã được đăng ký sử dụng.')
+        } else if (code === 4000) {
+          // Bắt các lỗi do JSR-303 Validation (@Valid) từ DTO đổ về
+          setError(resData.message || 'Dữ liệu nhập vào không hợp lệ.')
         } else {
-          setError(data.message || 'Đăng ký không thành công. Vui lòng kiểm tra lại thông tin.')
+          setError(resData.message || 'Đăng ký không thành công. Vui lòng kiểm tra lại.')
         }
       } else {
-        // Registration success
+        // Đăng ký thành công hoàn toàn
         alert('Chúc mừng! Bạn đã đăng ký tài khoản ví VT Pay thành công.')
         navigate('/login')
       }

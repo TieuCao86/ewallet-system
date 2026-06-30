@@ -51,8 +51,10 @@ function Login() {
 
       const resData = await response.json()
 
-      if (!response.ok || resData.success === false || resData.errorCode) {
-        const code = resData.errorCode || response.status
+      if (!response.ok) {
+        // Đọc mã lỗi nghiệp vụ trực tiếp từ ApiError của Backend
+        const code = resData.errorCode
+
         if (code === 1001 || code === 2001) {
           setError('Email hoặc mật khẩu không chính xác.')
         } else if (code === 1002) {
@@ -60,18 +62,19 @@ function Login() {
         } else if (code === 1003) {
           setError('Tài khoản này đã bị vô hiệu hóa.')
         } else {
-          setError('Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.')
+          setError(resData.message || 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.')
         }
       } else {
-        // Đăng nhập thành công -> Lấy thông tin user từ trường 'data'
+        // Đăng nhập thành công -> Trích xuất dữ liệu từ lớp bọc ApiResponse (.data)
         const userData = resData.data
 
-        // Bỏ việc lưu accessToken và tokenType
+        // Lưu thông tin định danh cơ bản phục vụ hiển thị (Token nằm an toàn trong HttpOnly Cookie)
         localStorage.setItem('userId', userData.userId)
         localStorage.setItem('email', userData.email)
         localStorage.setItem('role', userData.role)
 
         alert('Đăng nhập thành công!')
+
         if (userData.role === 'ADMIN') {
           navigate('/admin')
         } else {

@@ -13,5 +13,7 @@ public class ApiError {
 
     private int status;
 
+    private Integer errorCode;
+
     private String message;
 }
