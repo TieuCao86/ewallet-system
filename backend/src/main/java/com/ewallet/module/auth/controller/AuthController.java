@@ -15,10 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
 import java.util.Map;
@@ -95,6 +92,30 @@ public class AuthController {
 
         return ResponseEntity.ok(
                 ApiResponse.success("Logout successfully")
+        );
+    }
+
+    @GetMapping("/check-email")
+    public ResponseEntity<ApiResponse<Boolean>> checkEmail(
+            @RequestParam String email) {
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Email checked successfully",
+                        userService.existsByEmail(email)
+                )
+        );
+    }
+
+    @GetMapping("/check-phone")
+    public ResponseEntity<ApiResponse<Boolean>> checkPhone(
+            @RequestParam String phone) {
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Phone checked successfully",
+                        userService.existsByPhone(phone)
+                )
         );
     }
 }

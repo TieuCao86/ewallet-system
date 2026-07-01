@@ -19,13 +19,11 @@ public class Kyc extends BaseEntity {
     @Column(name = "user_id", nullable = false, unique = true)
     private Long userId;
 
-    @Column(nullable = false, length = 12)
+    @Column(length = 12)
     private String identityNumber;
 
-    @Column(nullable = false)
     private String address;
 
-    @Column(nullable = false)
     private LocalDate dateOfBirth;
 
     // CCCD images

@@ -33,7 +33,7 @@ function HistoryPanel({
           </div>
           <div className="stat-info">
             <span>Tổng nhận (Lọc)</span>
-            <strong>{filteredTransactions.filter(tx => tx.amount > 0 && tx.status === 'SUCCESS').reduce((sum, tx) => sum + tx.amount, 0).toLocaleString()}đ</strong>
+            <strong>{filteredTransactions.filter(tx => tx.direction === 'IN' && tx.status === 'SUCCESS').reduce((sum, tx) => sum + tx.amount, 0).toLocaleString()}đ</strong>
           </div>
         </div>
 
@@ -43,7 +43,7 @@ function HistoryPanel({
           </div>
           <div className="stat-info">
             <span>Tổng chi (Lọc)</span>
-            <strong>{filteredTransactions.filter(tx => tx.amount < 0 && tx.status === 'SUCCESS').reduce((sum, tx) => sum + Math.abs(tx.amount), 0).toLocaleString()}đ</strong>
+            <strong>{filteredTransactions.filter(tx => tx.direction === 'OUT' && tx.status === 'SUCCESS').reduce((sum, tx) => sum + tx.amount, 0).toLocaleString()}đ</strong>
           </div>
         </div>
 
@@ -91,7 +91,7 @@ function HistoryPanel({
             <select className="filter-select" value={filterType} onChange={(e) => setFilterType(e.target.value)}>
               <option value="ALL">Mọi loại giao dịch</option>
               <option value="TRANSFER">Chuyển khoản</option>
-              <option value="TOPUP">Nạp tiền</option>
+              <option value="TOP_UP">Nạp tiền</option>
               <option value="WITHDRAW">Rút tiền</option>
             </select>
 
@@ -127,15 +127,20 @@ function HistoryPanel({
                     <td style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: 'var(--muted)' }}>{tx.id}</td>
                     <td>
                       <div className="recipient-cell">
-                        <div className="recipient-avatar">{tx.recipient.substring(0, 1).toUpperCase()}</div>
-                        {tx.recipient}
+                        <div className="recipient-avatar">
+                          {(tx.recipient || '?').charAt(0).toUpperCase()}
+                        </div>
+
+                        {tx.recipient || 'Hệ thống'}
                       </div>
                     </td>
                     <td>
                       <span style={{ fontSize: '0.85rem', fontWeight: 650, color: 'var(--muted)' }}>
                         {tx.type === 'TRANSFER' && 'Chuyển tiền'}
-                        {tx.type === 'TOPUP' && 'Nạp ví'}
+                        {tx.type === 'TOP_UP' && 'Nạp ví'}
                         {tx.type === 'WITHDRAW' && 'Rút ví'}
+                        {tx.type === 'PAYMENT' && 'Thanh toán'}
+                        {tx.type === 'REFUND' && 'Hoàn tiền'}
                       </span>
                     </td>
                     <td style={{ color: 'var(--muted)', fontSize: '0.88rem' }}>{tx.date}</td>
@@ -144,11 +149,12 @@ function HistoryPanel({
                         {tx.status === 'SUCCESS' && 'Thành công'}
                         {tx.status === 'PENDING' && 'Chờ xử lý'}
                         {tx.status === 'FAILED' && 'Thất bại'}
+                        {tx.status === 'CANCELLED' && 'Đã hủy'}
                       </span>
                     </td>
                     <td>
-                      <span className={`transaction-amount ${tx.amount > 0 ? 'positive' : 'negative'}`}>
-                        {tx.amount > 0 ? '+' : ''}{formatCurrency(tx.amount)}
+                      <span className={`transaction-amount ${tx.direction === 'IN' ? 'positive' : 'negative'}`}>
+                        {tx.direction === 'IN' ? '+' : '-'}{formatCurrency(tx.amount)}
                       </span>
                     </td>
                   </tr>

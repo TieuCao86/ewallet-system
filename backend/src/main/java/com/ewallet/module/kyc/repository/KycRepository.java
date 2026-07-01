@@ -8,4 +8,6 @@ import java.util.Optional;
 public interface KycRepository extends JpaRepository<Kyc, Long> {
 
     Optional<Kyc> findByUserId(Long userId);
+
+    boolean existsByUserId(Long userId);
 }

@@ -617,7 +617,7 @@
 }
 
 .transaction-amount.negative {
-  color: var(--ink);
+  color: var(--danger);
 }
 
 .status-badge {
@@ -1810,7 +1810,7 @@ input:checked+.ios-slider:before {
 }
 
 .success-amount.type-outgoing {
-  color: var(--ink);
+  color: var(--danger);
 }
 
 .ticket-divider-container {

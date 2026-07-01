@@ -1,5 +1,6 @@
 package com.ewallet.module.transaction.dto;
 
+import com.ewallet.module.transaction.enums.TransactionDirection;
 import com.ewallet.module.transaction.enums.TransactionStatus;
 import com.ewallet.module.transaction.enums.TransactionType;
 import lombok.Builder;
@@ -22,9 +23,11 @@ public class TransactionResponse {
 
     private TransactionStatus status;
 
+    private String otherPartyName;
+
     private String description;
 
-    private String direction;
+    private TransactionDirection direction;
 
     private LocalDateTime createdAt;
 }

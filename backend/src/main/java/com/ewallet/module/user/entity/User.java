@@ -1,7 +1,6 @@
 package com.ewallet.module.user.entity;
 
 import com.ewallet.common.entity.BaseEntity;
-import com.ewallet.module.kyc.enums.KycStatus;
 import com.ewallet.module.user.enums.Role;
 import com.ewallet.module.user.enums.UserStatus;
 import jakarta.persistence.*;
@@ -45,11 +44,6 @@ public class User extends BaseEntity {
     @Column(nullable = false)
     @Builder.Default
     private UserStatus status = UserStatus.ACTIVE;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    @Builder.Default
-    private KycStatus kycStatus = KycStatus.PENDING;
 
     @Column(nullable = false)
     @Builder.Default
