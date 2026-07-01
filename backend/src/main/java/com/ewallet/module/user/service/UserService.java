@@ -3,6 +3,8 @@ package com.ewallet.module.user.service;
 import com.ewallet.common.exception.BusinessException;
 import com.ewallet.common.exception.InvalidCredentialsException;
 import com.ewallet.common.exception.UserNotFoundException;
+import com.ewallet.module.kyc.entity.Kyc;
+import com.ewallet.module.kyc.service.KycService;
 import com.ewallet.module.user.dto.*;
 import com.ewallet.module.user.entity.User;
 import com.ewallet.module.kyc.enums.KycStatus;
@@ -21,7 +23,9 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+
     private final WalletService walletService;
+    private final KycService kycService;
 
     @Transactional
     public UserProfileResponse register(RegisterRequest request) {
@@ -41,31 +45,27 @@ public class UserService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(Role.USER)
                 .status(UserStatus.ACTIVE)
-                .kycStatus(KycStatus.PENDING)
                 .build();
 
         User savedUser = userRepository.save(user);
 
         walletService.createWallet(savedUser.getId());
 
-        return toUserProfile(savedUser);
+        kycService.createDefaultKyc(savedUser.getId());
+
+        return toUserProfile(savedUser, KycStatus.PENDING);
     }
 
     @Transactional(readOnly = true)
     public UserProfileResponse getProfile(String email) {
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
+                .orElseThrow(() ->
+                        new UserNotFoundException("User not found"));
 
-        return UserProfileResponse.builder()
-                .id(user.getId())
-                .fullName(user.getFullName())
-                .email(user.getEmail())
-                .phone(user.getPhone())
-                .role(user.getRole())
-                .status(user.getStatus())
-                .kycStatus(user.getKycStatus())
-                .build();
+        KycStatus status = kycService.getKycStatus(user.getId());
+
+        return toUserProfile(user, status);
     }
 
     @Transactional
@@ -76,15 +76,10 @@ public class UserService {
 
         user.setFullName(request.getFullName());
 
-        return UserProfileResponse.builder()
-                .id(user.getId())
-                .fullName(user.getFullName())
-                .email(user.getEmail())
-                .phone(user.getPhone())
-                .role(user.getRole())
-                .status(user.getStatus())
-                .kycStatus(user.getKycStatus())
-                .build();
+        return toUserProfile(
+                user,
+                kycService.getKycStatus(user.getId())
+        );
     }
 
     @Transactional
@@ -136,6 +131,7 @@ public class UserService {
 
     @Transactional
     public void createPin(User user, CreatePinRequest request) {
+
         if (user.getPin() != null) {
             throw new IllegalStateException("PIN already exists");
         }
@@ -145,11 +141,11 @@ public class UserService {
         }
 
         user.setPin(passwordEncoder.encode(request.getPin()));
-        userRepository.save(user);
     }
 
     @Transactional
     public void changePin(User user, ChangePinRequest request) {
+
         if (!passwordEncoder.matches(request.getOldPin(), user.getPin())) {
             throw new IllegalArgumentException("Old PIN is incorrect");
         }
@@ -159,10 +155,13 @@ public class UserService {
         }
 
         user.setPin(passwordEncoder.encode(request.getNewPin()));
-        userRepository.save(user);
     }
 
-    private UserProfileResponse toUserProfile(User user) {
+    private UserProfileResponse toUserProfile(
+            User user,
+            KycStatus kycStatus
+    ) {
+
         return UserProfileResponse.builder()
                 .id(user.getId())
                 .fullName(user.getFullName())
@@ -170,7 +169,17 @@ public class UserService {
                 .phone(user.getPhone())
                 .role(user.getRole())
                 .status(user.getStatus())
-                .kycStatus(user.getKycStatus())
+                .kycStatus(kycStatus)
                 .build();
+    }
+
+    @Transactional(readOnly = true)
+    public boolean existsByEmail(String email){
+        return userRepository.existsByEmail(email);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean existsByPhone(String phone){
+        return userRepository.existsByPhone(phone);
     }
 }

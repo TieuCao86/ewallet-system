@@ -117,7 +117,7 @@ function TransactionsPanel({
             <select className="filter-select" value={filterType} onChange={(e) => setFilterType(e.target.value)}>
               <option value="ALL">Mọi loại giao dịch</option>
               <option value="TRANSFER">Chuyển khoản</option>
-              <option value="TOPUP">Nạp tiền</option>
+              <option value="TOP_UP">Nạp tiền</option>
               <option value="WITHDRAW">Rút tiền</option>
             </select>
 
@@ -152,15 +152,15 @@ function TransactionsPanel({
                     <td>
                       <div className="recipient-cell">
                         <div className="recipient-avatar">
-                          {tx.recipient.substring(0, 1).toUpperCase()}
+                          {(tx.recipient || '?').charAt(0).toUpperCase()}
                         </div>
-                        {tx.recipient}
+                        {tx.recipient || 'Hệ thống'}
                       </div>
                     </td>
                     <td>
                       <span style={{ fontSize: '0.85rem', fontWeight: 650, color: 'var(--muted)' }}>
                         {tx.type === 'TRANSFER' && 'Chuyển tiền'}
-                        {tx.type === 'TOPUP' && 'Nạp ví'}
+                        {tx.type === 'TOP_UP' && 'Nạp ví'}
                         {tx.type === 'WITHDRAW' && 'Rút ví'}
                       </span>
                     </td>
@@ -170,12 +170,13 @@ function TransactionsPanel({
                         {tx.status === 'SUCCESS' && 'Thành công'}
                         {tx.status === 'PENDING' && 'Chờ xử lý'}
                         {tx.status === 'FAILED' && 'Thất bại'}
+                        {tx.status === 'CANCELLED' && 'Đã hủy'}
                       </span>
                     </td>
                     <td>
-                      <span className={`transaction-amount ${tx.amount > 0 ? 'positive' : 'negative'}`}>
-                        {tx.amount > 0 ? '+' : ''}{formatCurrency(tx.amount)}
-                      </span>
+                      <span className={`transaction-amount ${tx.direction === 'IN' ? 'positive' : tx.direction === 'OUT' ? 'negative' : ''}`}>
+                      {tx.direction === 'IN' ? '+' : tx.direction === 'OUT' ? '-' : ''}{formatCurrency(tx.amount)}
+                    </span>
                     </td>
                   </tr>
                 ))

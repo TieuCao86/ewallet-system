@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -31,56 +32,65 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-        // Log phục vụ debug khi gọi từ Frontend
-        System.out.println("===== [VT Pay] JWT FILTER =====");
-        System.out.println("Request URI: " + request.getRequestURI());
+        String path = request.getServletPath();
+
+        // Bỏ qua các API public
+        if (path.startsWith("/api/auth")
+                || path.startsWith("/swagger-ui")
+                || path.startsWith("/v3/api-docs")) {
+
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        String token = null;
 
         Cookie[] cookies = request.getCookies();
-        String token = null;
-        String username = null;
 
-        // 1. Trích xuất token từ danh sách Cookies
         if (cookies != null) {
             for (Cookie cookie : cookies) {
                 if ("access_token".equals(cookie.getName())) {
                     token = cookie.getValue();
-                    System.out.println("Found access_token in Cookie!");
                     break;
                 }
             }
         }
 
-        // 2. Trích xuất username từ JWT Token nhận được
-        if (token != null) {
+        if (token != null
+                && SecurityContextHolder.getContext().getAuthentication() == null) {
+
             try {
-                username = jwtService.extractUsername(token);
-            } catch (Exception e) {
-                System.out.println("Token không hợp lệ hoặc đã hết hạn: " + e.getMessage());
-            }
-        }
 
-        // 3. Tiến hành xác thực nếu có username và chưa tồn tại phiên đăng nhập trong SecurityContext
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                String username = jwtService.extractUsername(token);
 
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                UserDetails userDetails =
+                        userDetailsService.loadUserByUsername(username);
 
-            // Kiểm tra tính hợp lệ của token (Nếu hàm của bạn chỉ cần truyền token thì giữ nguyên,
-            // còn nếu hàm yêu cầu truyền cả userDetails thì sửa thành: jwtService.isTokenValid(token, userDetails))
-            if (jwtService.isTokenValid(token)) {
+                if (jwtService.isTokenValid(token)) {
 
-                UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(
-                                userDetails,
-                                null,
-                                userDetails.getAuthorities()
-                        );
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(
+                                    userDetails,
+                                    null,
+                                    userDetails.getAuthorities()
+                            );
 
-                authToken.setDetails(
-                        new WebAuthenticationDetailsSource().buildDetails(request)
-                );
+                    authentication.setDetails(
+                            new WebAuthenticationDetailsSource()
+                                    .buildDetails(request)
+                    );
 
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-                System.out.println("Xác thực thành công cho user: " + username);
+                    SecurityContextHolder.getContext()
+                            .setAuthentication(authentication);
+                }
+
+            } catch (UsernameNotFoundException ex) {
+                // User đã bị xóa khỏi DB -> bỏ qua xác thực
+                SecurityContextHolder.clearContext();
+
+            } catch (Exception ex) {
+                // Token hết hạn hoặc không hợp lệ
+                SecurityContextHolder.clearContext();
             }
         }
 

@@ -8,6 +8,8 @@
   --ink: #07172f;
   --muted: #64748b;
   --line: #dbe6f2;
+  --danger: #ef4444;
+  --danger-soft: rgba(239, 68, 68, 0.08);
   --accent: #006aff;
   --accent-soft: rgba(0, 106, 255, 0.1);
   --radius-card: 28px;

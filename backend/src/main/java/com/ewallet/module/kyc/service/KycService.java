@@ -20,8 +20,10 @@ public class KycService {
 
     @Transactional
     public KycResponse submitKyc(Long userId, KycRequest request) {
+
         Kyc kyc = kycRepository.findByUserId(userId)
-                .orElse(Kyc.builder().userId(userId).build());
+                .orElseThrow(() ->
+                        new NotFoundException("KYC not found"));
 
         kyc.setIdentityNumber(request.getIdentityNumber());
         kyc.setAddress(request.getAddress());
@@ -29,9 +31,10 @@ public class KycService {
         kyc.setFrontImageUrl(request.getFrontImageUrl());
         kyc.setBackImageUrl(request.getBackImageUrl());
         kyc.setSelfieUrl(request.getSelfieUrl());
+
+        // gửi lại thì quay về Pending
         kyc.setStatus(KycStatus.PENDING);
 
-        kycRepository.save(kyc);
         return toResponse(kyc);
     }
 
@@ -42,10 +45,40 @@ public class KycService {
         return toResponse(kyc);
     }
 
-    public void validateKycApproval(User user) {
-        if (user.getKycStatus() != KycStatus.APPROVED) {
+    @Transactional(readOnly = true)
+    public void validateKycApproval(Long userId) {
+
+        Kyc kyc = kycRepository.findByUserId(userId)
+                .orElseThrow(() ->
+                        new BusinessException("KYC_REQUIRED"));
+
+        if (kyc.getStatus() != KycStatus.APPROVED) {
             throw new BusinessException("KYC_REQUIRED");
         }
+    }
+
+    @Transactional(readOnly = true)
+    public KycStatus getKycStatus(Long userId) {
+
+        return kycRepository.findByUserId(userId)
+                .map(Kyc::getStatus)
+                .orElseThrow(() ->
+                        new NotFoundException("KYC not found"));
+    }
+
+    @Transactional
+    public void createDefaultKyc(Long userId) {
+
+        if (kycRepository.existsByUserId(userId)) {
+            return;
+        }
+
+        Kyc kyc = Kyc.builder()
+                .userId(userId)
+                .status(KycStatus.PENDING)
+                .build();
+
+        kycRepository.save(kyc);
     }
 
     private KycResponse toResponse(Kyc kyc) {

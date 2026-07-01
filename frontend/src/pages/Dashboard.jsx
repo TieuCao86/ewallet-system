@@ -40,46 +40,19 @@ function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [isLive, setIsLive] = useState(false)
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' })
-  const [notifications, setNotifications] = useState([
-    { id: 1, title: 'Đăng nhập mới', content: 'Tài khoản ví của bạn đã được đăng nhập từ thiết bị Windows.', time: '5 phút trước', read: false },
-    { id: 2, title: 'Nạp tiền thành công', content: 'Bạn vừa nạp thành công 2.000.000đ từ ngân hàng Vietcombank.', time: '2 giờ trước', read: true }
-  ])
+  const [notifications, setNotifications] = useState([])
   const [showNotifications, setShowNotifications] = useState(false)
 
   // Modals state
-  const [modalType, setModalType] = useState(null) // 'topup', 'withdraw', 'password', 'pin'
+  const [modalType, setModalType] = useState(null)
   const [modalAmount, setModalAmount] = useState('')
   const [modalPassword, setModalPassword] = useState({ old: '', new: '', confirm: '' })
   const [modalPin, setModalPin] = useState({ old: '', new: '', confirm: '' })
 
   // Core Data States (Fallback to mock data if backend not active)
-  const [userProfile, setUserProfile] = useState({
-    fullName: 'Nguyễn Bá Việt',
-    email: 'vietnb@vtpay.local',
-    phone: '0987654321',
-    citizenId: '001096008686',
-    kycStatus: 'APPROVED', // APPROVED, PENDING, REJECTED
-    status: 'ACTIVE',
-    dob: '1996-08-06',
-    gender: 'Nam',
-    address: '123 Đường Láng, Quận Đống Đa, Hà Nội',
-    vipLevel: 'Gold'
-  })
-
-  const [wallet, setWallet] = useState({
-    balance: 42800000,
-    walletId: 86868686,
-    currency: 'đ',
-    lastLogin: '2026-06-25 00:47:26'
-  })
-
-  const [transactions, setTransactions] = useState([
-    { id: 'TX-1092', recipient: 'Coffee Lab', amount: -48000, type: 'TRANSFER', date: '2026-06-24 22:15:30', status: 'SUCCESS' },
-    { id: 'TX-1091', recipient: 'Nạp tiền Vietcombank', amount: 2000000, type: 'TOPUP', date: '2026-06-24 18:30:12', status: 'SUCCESS' },
-    { id: 'TX-1090', recipient: 'Lê Hoàng Anh', amount: 500000, type: 'TRANSFER', date: '2026-06-24 14:12:05', status: 'SUCCESS' },
-    { id: 'TX-1089', recipient: 'Thanh toán tiền điện', amount: -320000, type: 'WITHDRAW', date: '2026-06-23 09:45:00', status: 'SUCCESS' },
-    { id: 'TX-1088', recipient: 'Trần Thị Thu', amount: -150000, type: 'TRANSFER', date: '2026-06-22 19:20:44', status: 'FAILED' }
-  ])
+  const [userProfile, setUserProfile] = useState(null)
+  const [wallet, setWallet] = useState(null)
+  const [transactions, setTransactions] = useState([])
 
   // Filters State
   const [filterType, setFilterType] = useState('ALL')
@@ -163,15 +136,7 @@ function Dashboard() {
 
   // Profile Settings States
   const [isEditMode, setIsEditMode] = useState(false)
-  const [editProfile, setEditProfile] = useState({
-    fullName: 'Nguyễn Bá Việt',
-    email: 'vietnb@vtpay.local',
-    phone: '0987654321',
-    citizenId: '001096008686',
-    dob: '1996-08-06',
-    gender: 'Nam',
-    address: '123 Đường Láng, Quận Đống Đa, Hà Nội'
-  })
+  const [editProfile, setEditProfile] = useState(null)
 
   // Transaction Limits
   const [limitPerTransaction] = useState(50000000)
@@ -197,16 +162,11 @@ function Dashboard() {
   }
 
   // Fetch Live Data on mount
-  // Fetch Live Data on mount
   useEffect(() => {
     const fetchData = async () => {
       // Do dùng HttpOnly Cookie, ta không check accessToken trong localStorage nữa
       try {
-        // 1. Fetch Profile từ DB thật
-        const profileRes = await fetch('/api/users/profile', {
-          method: 'GET',
-          // credentials: 'include' tự động được fetch gửi kèm nếu cấu hình ở file setup/proxy
-        })
+        const profileRes = await fetch('/api/users/profile', { method: 'GET' })
         const resProfileData = await profileRes.json()
 
         if (profileRes.ok && resProfileData.success && resProfileData.data) {
@@ -216,61 +176,69 @@ function Dashboard() {
             fullName: dbUser.fullName,
             email: dbUser.email,
             phone: dbUser.phone || 'Chưa cập nhật',
-            citizenId: '001096008686',
-            kycStatus: dbUser.kycStatus || 'APPROVED',
+            citizenId: dbUser.citizenId || 'Chưa xác thực',
+            kycStatus: dbUser.kycStatus || 'PENDING',
             status: dbUser.status || 'ACTIVE',
-            dob: '2004-01-01',
-            gender: 'Nam',
-            address: 'Thành phố Hồ Chí Minh, Việt Nam',
-            vipLevel: dbUser.role === 'ADMIN' ? 'Administrator' : 'Vip Gold'
+            dob: dbUser.dob || '',
+            gender: dbUser.gender || '',
+            address: dbUser.address || '',
+            vipLevel: dbUser.role === 'ADMIN' ? 'Administrator' : 'Member'
           }
 
           setUserProfile(fetchedProfile)
-
-          setEditProfile({
-            fullName: fetchedProfile.fullName,
-            email: fetchedProfile.email,
-            phone: fetchedProfile.phone,
-            citizenId: fetchedProfile.citizenId,
-            dob: fetchedProfile.dob,
-            gender: fetchedProfile.gender,
-            address: fetchedProfile.address
-          })
-
+          setEditProfile({ ...fetchedProfile })
+          setBankPhone(fetchedProfile.phone)
           setIsLive(true)
+
         }
 
         // 2. Fetch Wallet Balance
-        const walletRes = await fetch('/api/wallets')
+        const walletRes = await fetch('/api/wallets/balance', { method: 'GET' })
         const resWalletData = await walletRes.json()
 
         if (walletRes.ok && resWalletData.success && resWalletData.data) {
           const dbWallet = resWalletData.data
+
           setWallet({
-            balance: dbWallet.balance !== undefined ? dbWallet.balance : 42800000,
-            walletId: dbWallet.walletId || 86868686,
-            currency: dbWallet.currency || 'đ',
-            lastLogin: dbWallet.lastLogin || '2026-06-25 00:47:26'
+            balance: dbWallet.balance || 0,
+            walletId: dbWallet.walletNumber || 'Chưa cấu hình', // Map walletNumber sang walletId cho khớp UI
+            currency: 'đ',
+            lastLogin: ''
           })
         }
 
         // 3. Fetch Transactions History
-        const transRes = await fetch('/api/transactions/history')
+        const transRes = await fetch('/api/transactions/history', { method: 'GET' })
         const resTransData = await transRes.json()
 
         if (transRes.ok && resTransData.success && Array.isArray(resTransData.data)) {
-          setTransactions(resTransData.data.map(t => ({
-            id: t.transactionId || generateRandomId('TX'),
-            recipient: t.type === 'TOPUP' ? 'Nạp tiền ngân hàng' : (t.type === 'WITHDRAW' ? 'Rút tiền ngân hàng' : t.recipientPhone || 'Ví VT Pay'),
-            amount: t.type === 'TOPUP' ? t.amount : -t.amount,
-            type: t.type,
-            date: t.transactionDate || new Date().toISOString(),
-            status: t.status || 'SUCCESS'
-          })))
+          setTransactions(
+              resTransData.data.map(t => ({
+                id: t.transactionCode,
+
+                recipient: t.otherPartyName,
+
+                amount: Number(t.amount),
+
+                fee: Number(t.fee ?? 0),
+
+                type: t.type,
+
+                status: t.status,
+
+                direction: t.direction,
+
+                description: t.description,
+
+                date: t.createdAt
+                    ? t.createdAt.replace('T', ' ').substring(0, 19)
+                    : ''
+              }))
+          )
         }
 
       } catch (err) {
-        console.warn('Backend server not connected. Running Dashboard on fully interactive Mock mode.', err)
+        console.error('Lỗi nạp dữ liệu từ Backend:', err)
       } finally {
         setLoading(false)
       }

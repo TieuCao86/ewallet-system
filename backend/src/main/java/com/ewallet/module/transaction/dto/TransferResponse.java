@@ -1,9 +1,11 @@
 package com.ewallet.module.transaction.dto;
 
+import com.ewallet.module.transaction.enums.TransactionStatus;
 import lombok.Builder;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Builder
 @Data
@@ -11,13 +13,11 @@ public class TransferResponse {
 
     private String transactionCode;
 
-    private String senderPhone;
-
-    private String receiverPhone;
-
     private BigDecimal amount;
 
-    private BigDecimal senderBalance;
+    private BigDecimal balance;
 
-    private BigDecimal receiverBalance;
+    private TransactionStatus status;
+
+    private LocalDateTime createdAt;
 }

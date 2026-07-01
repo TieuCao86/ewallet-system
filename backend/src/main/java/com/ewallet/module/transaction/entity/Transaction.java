@@ -25,10 +25,22 @@ public class Transaction extends BaseEntity {
 
     private Long receiverUserId;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 100)
+    private String senderName;
+
+    @Column(length = 100)
+    private String receiverName;
+
+    @Column(nullable = false, length = 15)
+    private String senderPhone;
+
+    @Column(length = 15)
+    private String receiverPhone;
+
+    @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal amount;
 
-    @Column(nullable = false)
+    @Column(nullable = false, precision = 19, scale = 2)
     @Builder.Default
     private BigDecimal fee = BigDecimal.ZERO;
 
@@ -40,5 +52,6 @@ public class Transaction extends BaseEntity {
     @Column(nullable = false)
     private TransactionStatus status;
 
+    @Column(length = 255)
     private String description;
 }

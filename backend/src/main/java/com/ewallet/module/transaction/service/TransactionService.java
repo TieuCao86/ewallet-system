@@ -1,15 +1,14 @@
 package com.ewallet.module.transaction.service;
 
-import com.ewallet.common.exception.BusinessException;
 import com.ewallet.common.exception.InsufficientBalanceException;
 import com.ewallet.common.exception.InvalidPinException;
 import com.ewallet.common.exception.NotFoundException;
-import com.ewallet.module.kyc.enums.KycStatus;
 import com.ewallet.module.kyc.service.KycService;
 import com.ewallet.module.transaction.dto.TransactionResponse;
 import com.ewallet.module.transaction.dto.TransferRequest;
 import com.ewallet.module.transaction.dto.TransferResponse;
 import com.ewallet.module.transaction.entity.Transaction;
+import com.ewallet.module.transaction.enums.TransactionDirection;
 import com.ewallet.module.transaction.enums.TransactionStatus;
 import com.ewallet.module.transaction.enums.TransactionType;
 import com.ewallet.module.transaction.repository.TransactionRepository;
@@ -40,13 +39,23 @@ public class TransactionService {
     private final PasswordEncoder passwordEncoder;
 
     public Transaction createTopUpTransaction(Long userId, BigDecimal amount) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
         Transaction transaction = Transaction.builder()
                 .transactionCode(transactionCodeGenerator.generate())
-                .senderUserId(userId)
+
+                .senderUserId(user.getId())
+                .senderName(user.getFullName())
+                .senderPhone(user.getPhone())
+
                 .amount(amount)
                 .fee(BigDecimal.ZERO)
+
                 .type(TransactionType.TOP_UP)
                 .status(TransactionStatus.SUCCESS)
+
                 .description("Wallet Top Up")
                 .build();
 
@@ -55,14 +64,52 @@ public class TransactionService {
 
     @Transactional(readOnly = true)
     public List<TransactionResponse> getHistory(Long userId) {
+
         List<Transaction> transactions = transactionRepository
                 .findBySenderUserIdOrReceiverUserIdOrderByCreatedAtDesc(userId, userId);
 
         return transactions.stream()
                 .map(tx -> {
-                    String direction = "SYSTEM";
-                    if (tx.getType() == TransactionType.TRANSFER) {
-                        direction = userId.equals(tx.getSenderUserId()) ? "SENT" : "RECEIVED";
+
+                    TransactionDirection direction;
+                    String otherPartyName;
+
+                    switch (tx.getType()) {
+
+                        case TRANSFER -> {
+                            if (userId.equals(tx.getSenderUserId())) {
+                                direction = TransactionDirection.OUT;
+                                otherPartyName = tx.getReceiverName();
+                            } else {
+                                direction = TransactionDirection.IN;
+                                otherPartyName = tx.getSenderName();
+                            }
+                        }
+
+                        case TOP_UP -> {
+                            direction = TransactionDirection.IN;
+                            otherPartyName = "Nạp tiền";
+                        }
+
+                        case WITHDRAW -> {
+                            direction = TransactionDirection.OUT;
+                            otherPartyName = "Rút tiền";
+                        }
+
+                        case PAYMENT -> {
+                            direction = TransactionDirection.OUT;
+                            otherPartyName = "Thanh toán";
+                        }
+
+                        case REFUND -> {
+                            direction = TransactionDirection.IN;
+                            otherPartyName = "Hoàn tiền";
+                        }
+
+                        default -> {
+                            direction = TransactionDirection.SYSTEM;
+                            otherPartyName = "Hệ thống";
+                        }
                     }
 
                     return TransactionResponse.builder()
@@ -71,6 +118,7 @@ public class TransactionService {
                             .fee(tx.getFee())
                             .type(tx.getType())
                             .status(tx.getStatus())
+                            .otherPartyName(otherPartyName)
                             .direction(direction)
                             .description(tx.getDescription())
                             .createdAt(tx.getCreatedAt())
@@ -82,7 +130,7 @@ public class TransactionService {
     @Transactional
     public TransferResponse transfer(User sender, TransferRequest request) {
         // Gọn gàng: Ủy quyền check KYC cho KycService xử lý
-        kycService.validateKycApproval(sender);
+        kycService.validateKycApproval(sender.getId());
 
         validatePin(sender, request.getPin());
 
@@ -116,8 +164,16 @@ public class TransactionService {
 
         Transaction transaction = Transaction.builder()
                 .transactionCode(transactionCodeGenerator.generate())
+
                 .senderUserId(sender.getId())
                 .receiverUserId(receiver.getId())
+
+                .senderName(sender.getFullName())
+                .receiverName(receiver.getFullName())
+
+                .senderPhone(sender.getPhone())
+                .receiverPhone(receiver.getPhone())
+
                 .amount(request.getAmount())
                 .fee(BigDecimal.ZERO)
                 .type(TransactionType.TRANSFER)
@@ -125,15 +181,14 @@ public class TransactionService {
                 .description(request.getDescription())
                 .build();
 
-        transactionRepository.save(transaction);
+        Transaction savedTransaction = transactionRepository.save(transaction);
 
         return TransferResponse.builder()
-                .transactionCode(transaction.getTransactionCode())
-                .senderPhone(sender.getPhone())
-                .receiverPhone(receiver.getPhone())
-                .amount(request.getAmount())
-                .senderBalance(senderWallet.getBalance())
-                .receiverBalance(receiverWallet.getBalance())
+                .transactionCode(savedTransaction.getTransactionCode())
+                .amount(savedTransaction.getAmount())
+                .balance(senderWallet.getBalance())
+                .status(savedTransaction.getStatus())
+                .createdAt(savedTransaction.getCreatedAt())
                 .build();
     }
 

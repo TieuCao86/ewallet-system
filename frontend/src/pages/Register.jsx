@@ -15,6 +15,48 @@ function Register() {
 
   const navigate = useNavigate()
 
+  const checkEmail = async () => {
+    if (!email || !/\S+@\S+\.\S+/.test(email)) return true;
+
+    const response = await fetch(`/api/auth/check-email?email=${encodeURIComponent(email)}`);
+    const result = await response.json();
+
+    if (result.data) {
+      setFieldErrors(prev => ({
+        ...prev,
+        email: "Địa chỉ email này đã được sử dụng."
+      }));
+      return false;
+    }
+
+    setFieldErrors(prev => ({
+      ...prev,
+      email: ""
+    }));
+    return true;
+  };
+
+  const checkPhone = async () => {
+    if (!phone || !/^(0|\+84)(3|5|7|8|9)[0-9]{8}$/.test(phone)) return true;
+
+    const response = await fetch(`/api/auth/check-phone?phone=${encodeURIComponent(phone)}`);
+    const result = await response.json();
+
+    if (result.data) {
+      setFieldErrors(prev => ({
+        ...prev,
+        phone: "Số điện thoại này đã được đăng ký."
+      }));
+      return false;
+    }
+
+    setFieldErrors(prev => ({
+      ...prev,
+      phone: ""
+    }));
+    return true;
+  };
+
   const validateForm = () => {
     const errors = {}
     
@@ -49,8 +91,15 @@ function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    
-    if (!validateForm()) return
+
+    if (!validateForm()) return;
+
+    const emailOk = await checkEmail();
+    const phoneOk = await checkPhone();
+
+    if (!emailOk || !phoneOk) {
+      return;
+    }
     
     setLoading(true)
     
@@ -169,10 +218,18 @@ function Register() {
               type="email"
               placeholder="name@example.com"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value)
+
+                setFieldErrors(prev => ({
+                  ...prev,
+                  email: ""
+                }))
+              }}
               disabled={loading}
               icon={EnvelopeSimple}
               error={fieldErrors.email}
+              onBlur={checkEmail}
             />
 
             <FormInput
@@ -181,10 +238,18 @@ function Register() {
               type="tel"
               placeholder="Ví dụ: 0912345678"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => {
+                setPhone(e.target.value)
+
+                setFieldErrors(prev => ({
+                  ...prev,
+                  phone: ""
+                }))
+              }}
               disabled={loading}
               icon={Phone}
               error={fieldErrors.phone}
+              onBlur={checkPhone}
             />
 
             <FormInput
