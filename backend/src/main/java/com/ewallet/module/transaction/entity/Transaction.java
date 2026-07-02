@@ -37,6 +37,18 @@ public class Transaction extends BaseEntity {
     @Column(length = 15)
     private String receiverPhone;
 
+    @Column
+    private Long bankAccountId;
+
+    @Column(length = 10)
+    private String bankCode;
+
+    @Column(length = 100)
+    private String bankName;
+
+    @Column(length = 20)
+    private String bankAccountNumber;
+
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal amount;
 

@@ -1,8 +1,6 @@
 package com.ewallet.module.user.service;
 
-import com.ewallet.common.exception.BusinessException;
-import com.ewallet.common.exception.InvalidCredentialsException;
-import com.ewallet.common.exception.UserNotFoundException;
+import com.ewallet.common.exception.*;
 import com.ewallet.module.kyc.entity.Kyc;
 import com.ewallet.module.kyc.service.KycService;
 import com.ewallet.module.user.dto.*;
@@ -126,7 +124,19 @@ public class UserService {
     @Transactional(readOnly = true)
     public User getByEmail(String email) {
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new NotFoundException("User not found"));
+    }
+
+    @Transactional(readOnly = true)
+    public User getByPhone(String phone) {
+        return userRepository.findByPhone(phone)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+    }
+
+    @Transactional(readOnly = true)
+    public User getById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found"));
     }
 
     @Transactional
@@ -155,6 +165,17 @@ public class UserService {
         }
 
         user.setPin(passwordEncoder.encode(request.getNewPin()));
+    }
+
+    public void validatePin(User user, String rawPin) {
+
+        if (user.getPin() == null) {
+            throw new InvalidPinException("Please create transaction PIN first");
+        }
+
+        if (!passwordEncoder.matches(rawPin, user.getPin())) {
+            throw new InvalidPinException("Invalid transaction PIN");
+        }
     }
 
     private UserProfileResponse toUserProfile(
