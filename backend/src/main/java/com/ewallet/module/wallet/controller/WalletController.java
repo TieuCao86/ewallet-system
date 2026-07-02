@@ -38,22 +38,6 @@ public class WalletController {
         );
     }
 
-    @PostMapping("/topup")
-    public ResponseEntity<ApiResponse<TopUpResponse>> topUp(
-            @Valid @RequestBody TopUpRequest request,
-            Authentication authentication
-    ) {
-
-        User user = getCurrentUser(authentication);
-
-        return ResponseEntity.ok(
-                ApiResponse.success(
-                        "Top up successful",
-                        walletService.topUp(user.getId(), request)
-                )
-        );
-    }
-
     private User getCurrentUser(Authentication authentication) {
         return userService.getByEmail(authentication.getName());
     }

@@ -3,6 +3,7 @@ package com.ewallet.module.transaction.service;
 import com.ewallet.common.exception.InsufficientBalanceException;
 import com.ewallet.common.exception.InvalidPinException;
 import com.ewallet.common.exception.NotFoundException;
+import com.ewallet.module.bank.entity.BankAccount;
 import com.ewallet.module.kyc.service.KycService;
 import com.ewallet.module.transaction.dto.TransactionResponse;
 import com.ewallet.module.transaction.dto.TransferRequest;
@@ -15,6 +16,7 @@ import com.ewallet.module.transaction.repository.TransactionRepository;
 import com.ewallet.module.transaction.util.TransactionCodeGenerator;
 import com.ewallet.module.user.entity.User;
 import com.ewallet.module.user.repository.UserRepository;
+import com.ewallet.module.user.service.UserService;
 import com.ewallet.module.wallet.entity.Wallet;
 import com.ewallet.module.wallet.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
@@ -30,33 +32,69 @@ import java.util.List;
 public class TransactionService {
 
     private final TransactionRepository transactionRepository;
-    private final UserRepository userRepository;
     private final WalletRepository walletRepository;
+    private final UserRepository userRepository;
 
     private final KycService kycService;
-
-    private final TransactionCodeGenerator transactionCodeGenerator;
     private final PasswordEncoder passwordEncoder;
 
-    public Transaction createTopUpTransaction(Long userId, BigDecimal amount) {
+    private final TransactionCodeGenerator transactionCodeGenerator;
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("User not found"));
+    public Transaction createTopUpTransaction(
+            Long userId,
+            BankAccount bank,
+            BigDecimal amount
+    ) {
+
+        return createBankTransaction(
+                getUser(userId),
+                bank,
+                amount,
+                TransactionType.TOP_UP,
+                "Top up from bank"
+        );
+    }
+
+    public Transaction createWithdrawTransaction(
+            Long userId,
+            BankAccount bank,
+            BigDecimal amount
+    ) {
+
+        return createBankTransaction(
+                getUser(userId),
+                bank,
+                amount,
+                TransactionType.WITHDRAW,
+                "Withdraw to bank"
+        );
+    }
+
+    private Transaction createTransferTransaction(
+            User sender,
+            User receiver,
+            BigDecimal amount,
+            String description
+    ) {
 
         Transaction transaction = Transaction.builder()
                 .transactionCode(transactionCodeGenerator.generate())
 
-                .senderUserId(user.getId())
-                .senderName(user.getFullName())
-                .senderPhone(user.getPhone())
+                .senderUserId(sender.getId())
+                .receiverUserId(receiver.getId())
+
+                .senderName(sender.getFullName())
+                .receiverName(receiver.getFullName())
+
+                .senderPhone(sender.getPhone())
+                .receiverPhone(receiver.getPhone())
 
                 .amount(amount)
                 .fee(BigDecimal.ZERO)
 
-                .type(TransactionType.TOP_UP)
+                .type(TransactionType.TRANSFER)
                 .status(TransactionStatus.SUCCESS)
-
-                .description("Wallet Top Up")
+                .description(description)
                 .build();
 
         return transactionRepository.save(transaction);
@@ -162,26 +200,12 @@ public class TransactionService {
         walletRepository.save(senderWallet);
         walletRepository.save(receiverWallet);
 
-        Transaction transaction = Transaction.builder()
-                .transactionCode(transactionCodeGenerator.generate())
-
-                .senderUserId(sender.getId())
-                .receiverUserId(receiver.getId())
-
-                .senderName(sender.getFullName())
-                .receiverName(receiver.getFullName())
-
-                .senderPhone(sender.getPhone())
-                .receiverPhone(receiver.getPhone())
-
-                .amount(request.getAmount())
-                .fee(BigDecimal.ZERO)
-                .type(TransactionType.TRANSFER)
-                .status(TransactionStatus.SUCCESS)
-                .description(request.getDescription())
-                .build();
-
-        Transaction savedTransaction = transactionRepository.save(transaction);
+        Transaction savedTransaction = createTransferTransaction(
+                sender,
+                receiver,
+                request.getAmount(),
+                request.getDescription()
+        );
 
         return TransferResponse.builder()
                 .transactionCode(savedTransaction.getTransactionCode())
@@ -192,17 +216,54 @@ public class TransactionService {
                 .build();
     }
 
-    private void validatePin(User sender, String rawPin) {
-        if (sender.getPin() == null) {
-            throw new InvalidPinException("Please create transaction PIN first");
-        }
-        if (!passwordEncoder.matches(rawPin, sender.getPin())) {
-            throw new InvalidPinException("Invalid transaction PIN");
-        }
+    private Transaction createBankTransaction(
+            User user,
+            BankAccount bank,
+            BigDecimal amount,
+            TransactionType type,
+            String description
+    ) {
+
+        Transaction transaction = Transaction.builder()
+                .transactionCode(transactionCodeGenerator.generate())
+
+                .senderUserId(user.getId())
+                .senderName(user.getFullName())
+                .senderPhone(user.getPhone())
+
+                .bankAccountId(bank.getId())
+                .bankCode(bank.getBankCode().name())
+                .bankName(bank.getBankCode().getBankName())
+                .bankAccountNumber(bank.getAccountNumber())
+
+                .amount(amount)
+                .fee(BigDecimal.ZERO)
+
+                .type(type)
+                .status(TransactionStatus.SUCCESS)
+                .description(description)
+                .build();
+
+        return transactionRepository.save(transaction);
     }
 
     private Wallet getWalletForUpdate(Long userId) {
         return walletRepository.findByUserIdForUpdate(userId)
                 .orElseThrow(() -> new NotFoundException("Wallet not found for user: " + userId));
+    }
+
+    private User getUser(Long userId){
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+    }
+
+    private void validatePin(User user, String rawPin){
+        if(user.getPin()==null){
+            throw new InvalidPinException("Please create transaction PIN first");
+        }
+
+        if(!passwordEncoder.matches(rawPin,user.getPin())){
+            throw new InvalidPinException("Invalid transaction PIN");
+        }
     }
 }

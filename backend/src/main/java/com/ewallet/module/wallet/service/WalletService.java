@@ -1,5 +1,6 @@
 package com.ewallet.module.wallet.service;
 
+import com.ewallet.common.exception.InsufficientBalanceException;
 import com.ewallet.common.exception.WalletNotFoundException;
 import com.ewallet.module.transaction.entity.Transaction;
 import com.ewallet.module.transaction.service.TransactionService;
@@ -34,24 +35,31 @@ public class WalletService {
     }
 
     @Transactional
-    public TopUpResponse topUp(Long userId, TopUpRequest request) {
-        // Sử dụng hàm CÓ LOCK để bảo vệ dữ liệu khi nạp tiền, tránh race condition
+    public Wallet increaseBalance(Long userId, BigDecimal amount) {
+
         Wallet wallet = walletRepository.findByUserIdForUpdate(userId)
-                .orElseThrow(() -> new WalletNotFoundException("Wallet not found"));
+                .orElseThrow(() ->
+                        new WalletNotFoundException("Wallet not found"));
 
-        BigDecimal topUpAmount = request.getAmount();
-        wallet.setBalance(wallet.getBalance().add(topUpAmount));
-        walletRepository.save(wallet);
+        wallet.setBalance(wallet.getBalance().add(amount));
 
-        // Tạo lịch sử giao dịch thành công
-        Transaction transaction = transactionService.createTopUpTransaction(userId, topUpAmount);
+        return wallet;
+    }
 
-        return TopUpResponse.builder()
-                .walletNumber(wallet.getWalletNumber())
-                .amount(topUpAmount)
-                .newBalance(wallet.getBalance())
-                .transactionCode(transaction.getTransactionCode())
-                .build();
+    @Transactional
+    public Wallet decreaseBalance(Long userId, BigDecimal amount) {
+
+        Wallet wallet = walletRepository.findByUserIdForUpdate(userId)
+                .orElseThrow(() ->
+                        new WalletNotFoundException("Wallet not found"));
+
+        if (wallet.getBalance().compareTo(amount) < 0) {
+            throw new InsufficientBalanceException("Insufficient balance");
+        }
+
+        wallet.setBalance(wallet.getBalance().subtract(amount));
+
+        return wallet;
     }
 
     @Transactional
@@ -59,7 +67,7 @@ public class WalletService {
         Wallet wallet = Wallet.builder()
                 .userId(userId)
                 .walletNumber("WAL" + (System.currentTimeMillis() % 100000000000L))
-                .balance(BigDecimal.ZERO) // Luôn khởi tạo là 0 để tránh lỗi NullPointerException
+                .balance(BigDecimal.ZERO)
                 .build();
 
         walletRepository.save(wallet);
