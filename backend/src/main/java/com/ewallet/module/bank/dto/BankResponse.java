@@ -1,18 +1,19 @@
 package com.ewallet.module.bank.dto;
 
-import com.ewallet.module.bank.enums.BankCode;
-import lombok.Builder;
-import lombok.Getter;
+import lombok.*;
 
 import java.math.BigDecimal;
 
 @Getter
+@Setter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class BankResponse {
 
     private Long id;
 
-    private BankCode bankCode;
+    private Long bankId;
 
     private String bankName;
 

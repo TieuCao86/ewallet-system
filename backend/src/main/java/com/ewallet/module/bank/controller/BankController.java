@@ -1,11 +1,11 @@
 package com.ewallet.module.bank.controller;
 
 import com.ewallet.common.dto.ApiResponse;
-import com.ewallet.module.bank.dto.BankResponse;
-import com.ewallet.module.bank.dto.LinkBankRequest;
+import com.ewallet.module.bank.dto.*;
 import com.ewallet.module.bank.service.BankService;
 import com.ewallet.module.user.entity.User;
 import com.ewallet.module.user.service.UserService;
+import com.ewallet.module.wallet.dto.TopUpResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -72,5 +72,35 @@ public class BankController {
         bankService.unlinkBank(user.getId(), bankId);
 
         return ApiResponse.success("Bank account unlinked successfully");
+    }
+
+    @PostMapping("/deposit")
+    public ApiResponse<TopUpResponse> deposit(
+            Authentication authentication,
+            @Valid @RequestBody DepositRequest request
+    ) {
+
+        User user = userService.getByEmail(authentication.getName());
+
+        return ApiResponse.success(
+                "Deposit successful",
+                bankService.deposit(user, request)
+        );
+    }
+
+    @PostMapping("/withdraw")
+    public ApiResponse<WithdrawResponse> withdraw(
+            Authentication authentication,
+            @Valid @RequestBody WithdrawRequest request
+    ) {
+
+        User user = userService.getByEmail(authentication.getName());
+
+        bankService.withdraw(user, request);
+
+        return ApiResponse.success(
+                "Withdraw successful",
+                bankService.withdraw(user, request)
+        );
     }
 }

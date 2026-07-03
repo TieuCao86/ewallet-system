@@ -38,16 +38,16 @@ public class Transaction extends BaseEntity {
     private String receiverPhone;
 
     @Column
+    private Long bankId;
+
+    @Column
     private Long bankAccountId;
 
-    @Column(length = 10)
-    private String bankCode;
-
     @Column(length = 100)
-    private String bankName;
+    private String bankNameSnapshot;
 
     @Column(length = 20)
-    private String bankAccountNumber;
+    private String bankAccountNumberSnapshot;
 
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal amount;
