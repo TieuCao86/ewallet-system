@@ -1,7 +1,7 @@
 package com.ewallet.module.bank.repository;
 
 import com.ewallet.module.bank.entity.BankAccount;
-import com.ewallet.module.bank.enums.BankCode;
+import com.ewallet.module.bank.enums.BankStatus;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface BankRepository extends JpaRepository<BankAccount, Long> {
+public interface BankAccountRepository extends JpaRepository<BankAccount, Long> {
 
     List<BankAccount> findAllByUserId(Long userId);
 
@@ -20,7 +20,13 @@ public interface BankRepository extends JpaRepository<BankAccount, Long> {
 
     Optional<BankAccount> findByAccountNumber(String accountNumber);
 
-    boolean existsByUserIdAndBankCode(Long userId, BankCode bankCode);
+    boolean existsByUserIdAndBank_Id(Long userId, Long bankId);
+
+    boolean existsByUserIdAndBank_IdAndStatus(
+            Long userId,
+            Long bankId,
+            BankStatus status
+    );
 
     Optional<BankAccount> findByIdAndUserId(Long id, Long userId);
 

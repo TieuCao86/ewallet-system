@@ -16,7 +16,6 @@ import com.ewallet.module.transaction.repository.TransactionRepository;
 import com.ewallet.module.transaction.util.TransactionCodeGenerator;
 import com.ewallet.module.user.entity.User;
 import com.ewallet.module.user.repository.UserRepository;
-import com.ewallet.module.user.service.UserService;
 import com.ewallet.module.wallet.entity.Wallet;
 import com.ewallet.module.wallet.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
@@ -37,61 +36,27 @@ public class TransactionService {
 
     private final KycService kycService;
     private final PasswordEncoder passwordEncoder;
-
     private final TransactionCodeGenerator transactionCodeGenerator;
 
-    public Transaction createTopUpTransaction(
-            Long userId,
-            BankAccount bank,
-            BigDecimal amount
-    ) {
-
-        return createBankTransaction(
-                getUser(userId),
-                bank,
-                amount,
-                TransactionType.TOP_UP,
-                "Top up from bank"
-        );
+    public Transaction createTopUpTransaction(Long userId, BankAccount bankAccount, BigDecimal amount) {
+        return createBankTransaction(getUser(userId), bankAccount, amount, TransactionType.TOP_UP, "Top up from bank");
     }
 
-    public Transaction createWithdrawTransaction(
-            Long userId,
-            BankAccount bank,
-            BigDecimal amount
-    ) {
-
-        return createBankTransaction(
-                getUser(userId),
-                bank,
-                amount,
-                TransactionType.WITHDRAW,
-                "Withdraw to bank"
-        );
+    public Transaction createWithdrawTransaction(Long userId, BankAccount bankAccount, BigDecimal amount) {
+        return createBankTransaction(getUser(userId), bankAccount, amount, TransactionType.WITHDRAW, "Withdraw to bank");
     }
 
-    private Transaction createTransferTransaction(
-            User sender,
-            User receiver,
-            BigDecimal amount,
-            String description
-    ) {
-
+    private Transaction createTransferTransaction(User sender, User receiver, BigDecimal amount, String description) {
         Transaction transaction = Transaction.builder()
                 .transactionCode(transactionCodeGenerator.generate())
-
                 .senderUserId(sender.getId())
                 .receiverUserId(receiver.getId())
-
                 .senderName(sender.getFullName())
                 .receiverName(receiver.getFullName())
-
                 .senderPhone(sender.getPhone())
                 .receiverPhone(receiver.getPhone())
-
                 .amount(amount)
                 .fee(BigDecimal.ZERO)
-
                 .type(TransactionType.TRANSFER)
                 .status(TransactionStatus.SUCCESS)
                 .description(description)
@@ -102,18 +67,15 @@ public class TransactionService {
 
     @Transactional(readOnly = true)
     public List<TransactionResponse> getHistory(Long userId) {
-
         List<Transaction> transactions = transactionRepository
                 .findBySenderUserIdOrReceiverUserIdOrderByCreatedAtDesc(userId, userId);
 
         return transactions.stream()
                 .map(tx -> {
-
                     TransactionDirection direction;
                     String otherPartyName;
 
                     switch (tx.getType()) {
-
                         case TRANSFER -> {
                             if (userId.equals(tx.getSenderUserId())) {
                                 direction = TransactionDirection.OUT;
@@ -123,30 +85,17 @@ public class TransactionService {
                                 otherPartyName = tx.getSenderName();
                             }
                         }
-
                         case TOP_UP -> {
                             direction = TransactionDirection.IN;
-                            otherPartyName = "Nạp tiền";
+                            otherPartyName = "Nạp tiền vào ví";
                         }
-
                         case WITHDRAW -> {
                             direction = TransactionDirection.OUT;
-                            otherPartyName = "Rút tiền";
+                            otherPartyName = "Rút tiền về ngân hàng";
                         }
-
-                        case PAYMENT -> {
-                            direction = TransactionDirection.OUT;
-                            otherPartyName = "Thanh toán";
-                        }
-
-                        case REFUND -> {
-                            direction = TransactionDirection.IN;
-                            otherPartyName = "Hoàn tiền";
-                        }
-
                         default -> {
                             direction = TransactionDirection.SYSTEM;
-                            otherPartyName = "Hệ thống";
+                            otherPartyName = "Hệ thống ví";
                         }
                     }
 
@@ -167,19 +116,16 @@ public class TransactionService {
 
     @Transactional
     public TransferResponse transfer(User sender, TransferRequest request) {
-        // Gọn gàng: Ủy quyền check KYC cho KycService xử lý
         kycService.validateKycApproval(sender.getId());
-
         validatePin(sender, request.getPin());
 
         User receiver = userRepository.findByPhone(request.getReceiverPhone())
-                .orElseThrow(() -> new NotFoundException("Receiver not found"));
+                .orElseThrow(() -> new NotFoundException("Người nhận không tồn tại trên hệ thống."));
 
         if (sender.getId().equals(receiver.getId())) {
-            throw new IllegalArgumentException("Cannot transfer to yourself");
+            throw new IllegalArgumentException("Không thể chuyển tiền cho chính bản thân.");
         }
 
-        // Lock Ordering bảo vệ hệ thống khỏi Deadlock
         Wallet senderWallet;
         Wallet receiverWallet;
         if (sender.getId() < receiver.getId()) {
@@ -191,7 +137,7 @@ public class TransactionService {
         }
 
         if (senderWallet.getBalance().compareTo(request.getAmount()) < 0) {
-            throw new InsufficientBalanceException("Insufficient balance");
+            throw new InsufficientBalanceException("Số dư khả dụng trong ví không đủ.");
         }
 
         senderWallet.setBalance(senderWallet.getBalance().subtract(request.getAmount()));
@@ -218,7 +164,7 @@ public class TransactionService {
 
     private Transaction createBankTransaction(
             User user,
-            BankAccount bank,
+            BankAccount bankAccount,
             BigDecimal amount,
             TransactionType type,
             String description
@@ -226,19 +172,17 @@ public class TransactionService {
 
         Transaction transaction = Transaction.builder()
                 .transactionCode(transactionCodeGenerator.generate())
-
                 .senderUserId(user.getId())
                 .senderName(user.getFullName())
                 .senderPhone(user.getPhone())
 
-                .bankAccountId(bank.getId())
-                .bankCode(bank.getBankCode().name())
-                .bankName(bank.getBankCode().getBankName())
-                .bankAccountNumber(bank.getAccountNumber())
+                .bankId(bankAccount.getBank().getId())
+                .bankAccountId(bankAccount.getId())
+                .bankNameSnapshot(bankAccount.getBank().getName())
+                .bankAccountNumberSnapshot(bankAccount.getAccountNumber())
 
                 .amount(amount)
                 .fee(BigDecimal.ZERO)
-
                 .type(type)
                 .status(TransactionStatus.SUCCESS)
                 .description(description)
@@ -249,21 +193,20 @@ public class TransactionService {
 
     private Wallet getWalletForUpdate(Long userId) {
         return walletRepository.findByUserIdForUpdate(userId)
-                .orElseThrow(() -> new NotFoundException("Wallet not found for user: " + userId));
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy ví của người dùng: " + userId));
     }
 
-    private User getUser(Long userId){
+    private User getUser(Long userId) {
         return userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("User not found"));
+                .orElseThrow(() -> new NotFoundException("Người dùng không tồn tại."));
     }
 
-    private void validatePin(User user, String rawPin){
-        if(user.getPin()==null){
-            throw new InvalidPinException("Please create transaction PIN first");
+    private void validatePin(User user, String rawPin) {
+        if (user.getPin() == null) {
+            throw new InvalidPinException("Vui lòng tạo mã PIN giao dịch trước khi thực hiện.");
         }
-
-        if(!passwordEncoder.matches(rawPin,user.getPin())){
-            throw new InvalidPinException("Invalid transaction PIN");
+        if (!passwordEncoder.matches(rawPin, user.getPin())) {
+            throw new InvalidPinException("Mã PIN giao dịch không chính xác.");
         }
     }
 }

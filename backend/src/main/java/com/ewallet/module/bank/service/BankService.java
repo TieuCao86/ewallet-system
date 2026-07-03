@@ -2,13 +2,12 @@ package com.ewallet.module.bank.service;
 
 import com.ewallet.common.exception.BusinessException;
 import com.ewallet.common.exception.NotFoundException;
-import com.ewallet.module.bank.dto.BankResponse;
-import com.ewallet.module.bank.dto.DepositRequest;
-import com.ewallet.module.bank.dto.LinkBankRequest;
-import com.ewallet.module.bank.dto.WithdrawRequest;
+import com.ewallet.module.bank.dto.*;
+import com.ewallet.module.bank.entity.Bank;
 import com.ewallet.module.bank.entity.BankAccount;
 import com.ewallet.module.bank.enums.BankStatus;
-import com.ewallet.module.bank.repository.BankRepository;
+import com.ewallet.module.bank.repository.BankAccountRepository;
+import com.ewallet.module.bank.repository.BankInfoRepository;
 import com.ewallet.module.transaction.entity.Transaction;
 import com.ewallet.module.transaction.service.TransactionService;
 import com.ewallet.module.user.entity.User;
@@ -27,42 +26,48 @@ import java.util.List;
 @RequiredArgsConstructor
 public class BankService {
 
-    private final BankRepository bankRepository;
+    private final BankInfoRepository bankInfoRepository;
+    private final BankAccountRepository bankRepository;
 
     private final WalletService walletService;
     private final TransactionService transactionService;
     private final PasswordEncoder passwordEncoder;
 
     @Transactional
-    public BankResponse linkBank(
-            User user,
-            LinkBankRequest request
-    ) {
+    public BankResponse linkBank(User user, LinkBankRequest request) {
 
         if (bankRepository.existsByAccountNumber(request.getAccountNumber())) {
             throw new BusinessException("Bank account already linked");
         }
 
-        if (bankRepository.existsByUserIdAndBankCode(
+        Bank bankInfo = bankInfoRepository.findById(request.getBankId())
+                .orElseThrow(() ->
+                        new NotFoundException("Bank not found"));
+
+        if (!bankInfo.getActive()) {
+            throw new BusinessException("Bank is inactive");
+        }
+
+        if (bankRepository.existsByUserIdAndBank_Id(
                 user.getId(),
-                request.getBankCode()
+                bankInfo.getId()
         )) {
             throw new BusinessException("This bank has already been linked");
         }
 
-        BankAccount bank = BankAccount.builder()
+        BankAccount bankAccount = BankAccount.builder()
                 .userId(user.getId())
-                .bankCode(request.getBankCode())
+                .bank(bankInfo)
                 .accountNumber(request.getAccountNumber())
                 .accountHolder(user.getFullName())
                 .phone(request.getPhone())
-                .balance(BigDecimal.valueOf(100_000_000)) // demo
+                .balance(BigDecimal.valueOf(100_000_000))
                 .status(BankStatus.ACTIVE)
                 .build();
 
-        bankRepository.save(bank);
+        bankRepository.save(bankAccount);
 
-        return toResponse(bank);
+        return toResponse(bankAccount);
     }
 
     @Transactional(readOnly = true)
@@ -151,7 +156,7 @@ public class BankService {
     }
 
     @Transactional
-    public void withdraw(
+    public WithdrawResponse withdraw(
             User user,
             WithdrawRequest request
     ) {
@@ -172,7 +177,7 @@ public class BankService {
             throw new BusinessException("Invalid PIN");
         }
 
-        walletService.decreaseBalance(
+        Wallet wallet = walletService.decreaseBalance(
                 user.getId(),
                 request.getAmount()
         );
@@ -181,19 +186,26 @@ public class BankService {
                 bank.getBalance().add(request.getAmount())
         );
 
-        transactionService.createWithdrawTransaction(
+        Transaction transaction = transactionService.createWithdrawTransaction(
                 user.getId(),
                 bank,
                 request.getAmount()
         );
+
+        return WithdrawResponse.builder()
+                .amount(request.getAmount())
+                .walletBalance(wallet.getBalance())
+                .bankBalance(bank.getBalance())
+                .transactionCode(transaction.getTransactionCode())
+                .build();
     }
 
     private BankResponse toResponse(BankAccount bank) {
 
         return BankResponse.builder()
                 .id(bank.getId())
-                .bankCode(bank.getBankCode())
-                .bankName(bank.getBankCode().getBankName())
+                .bankId(bank.getBank().getId())
+                .bankName(bank.getBank().getName())
                 .accountNumber(bank.getAccountNumber())
                 .accountHolder(bank.getAccountHolder())
                 .balance(bank.getBalance())
