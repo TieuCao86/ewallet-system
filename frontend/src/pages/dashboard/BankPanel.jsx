@@ -5,6 +5,7 @@ function BankPanel({
   linkingStep,
   linkingError,
   bankPhone,
+  banks,
   setBankPhone,
   bankAccountNo,
   setBankAccountNo,
@@ -42,18 +43,12 @@ function BankPanel({
                 <div className="input-group">
                   <label className="input-label">Chọn ngân hàng đối tác</label>
                   <div className="bank-selection-grid">
-                    {[
-                      { code: 'VCB', name: 'Vietcombank', color: '#10b981' },
-                      { code: 'TCB', name: 'Techcombank', color: '#ef4444' },
-                      { code: 'BIDV', name: 'BIDV', color: '#3b82f6' },
-                      { code: 'ACB', name: 'ACB', color: '#0ea5e9' },
-                      { code: 'TPB', name: 'TPBank', color: '#a855f7' }
-                    ].map(b => (
+                    {banks.map(b => (
                       <button
-                        key={b.code}
+                        key={b.id}
                         type="button"
-                        className={`bank-select-btn ${selectedBank === b.code ? 'selected' : ''}`}
-                        onClick={() => setSelectedBank(b.code)}
+                        className={`bank-select-btn ${selectedBank === b.id ? 'selected' : ''}`}
+                        onClick={() => setSelectedBank(b.id)}
                         style={{
                           display: 'flex',
                           flexDirection: 'column',
@@ -61,16 +56,16 @@ function BankPanel({
                           justifyContent: 'center',
                           padding: '12px 6px',
                           borderRadius: '12px',
-                          border: selectedBank === b.code ? `2px solid ${b.color}` : '1.5px solid var(--line)',
-                          background: selectedBank === b.code ? `${b.color}15` : 'var(--surface)',
+                          border: selectedBank === b.id ? `2px solid ${b.color}` : '1.5px solid var(--line)',
+                          background: selectedBank === b.id ? `${b.color}15` : 'var(--surface)',
                           cursor: 'pointer',
                           transition: 'all 0.2s',
                           fontWeight: 700,
                           fontSize: '0.82rem',
-                          color: selectedBank === b.code ? b.color : 'var(--ink)'
+                          color: selectedBank === b.id ? b.color : 'var(--ink)'
                         }}
                       >
-                        <span style={{ fontSize: '1rem', fontWeight: 900, letterSpacing: '0.5px' }}>{b.code}</span>
+                        <span style={{ fontSize: '1rem', fontWeight: 900, letterSpacing: '0.5px' }}>{b.id}</span>
                       </button>
                     ))}
                   </div>

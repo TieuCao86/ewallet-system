@@ -16,7 +16,7 @@ export default function TransferConfirmModal({
   setTransferOtp,
   isTransferConfirmLoading,
   transferCountdown,
-  handleVerifyTransferPin,
+  onConfirm,
   handleVerifyTransferOtp,
   handleResendTransferOtp,
   parseNumberFromCommas,
@@ -28,7 +28,7 @@ export default function TransferConfirmModal({
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={transferOtpStep ? 'Xác thực OTP chuyển tiền' : 'Xác nhận chuyển tiền'}>
       {!transferOtpStep ? (
-        <form onSubmit={handleVerifyTransferPin}>
+        <form onSubmit={onConfirm}>
           <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: '0 0 20px', lineHeight: 1.5 }}>
             Vui lòng kiểm tra kỹ thông tin giao dịch và nhập mã PIN của bạn để tiếp tục.
           </p>
