@@ -7,7 +7,7 @@ import com.ewallet.module.bank.entity.Bank;
 import com.ewallet.module.bank.entity.BankAccount;
 import com.ewallet.module.bank.enums.BankStatus;
 import com.ewallet.module.bank.repository.BankAccountRepository;
-import com.ewallet.module.bank.repository.BankInfoRepository;
+import com.ewallet.module.bank.repository.BankRepository;
 import com.ewallet.module.transaction.entity.Transaction;
 import com.ewallet.module.transaction.service.TransactionService;
 import com.ewallet.module.user.entity.User;
@@ -26,8 +26,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class BankService {
 
-    private final BankInfoRepository bankInfoRepository;
-    private final BankAccountRepository bankRepository;
+    private final BankRepository bankRepository;
+    private final BankAccountRepository bankAccountRepository;
 
     private final WalletService walletService;
     private final TransactionService transactionService;
@@ -36,11 +36,11 @@ public class BankService {
     @Transactional
     public BankResponse linkBank(User user, LinkBankRequest request) {
 
-        if (bankRepository.existsByAccountNumber(request.getAccountNumber())) {
+        if (bankAccountRepository.existsByBank_IdAndAccountNumber(request.getBankId(), request.getAccountNumber())) {
             throw new BusinessException("Bank account already linked");
         }
 
-        Bank bankInfo = bankInfoRepository.findById(request.getBankId())
+        Bank bankInfo = bankRepository.findById(request.getBankId())
                 .orElseThrow(() ->
                         new NotFoundException("Bank not found"));
 
@@ -48,7 +48,7 @@ public class BankService {
             throw new BusinessException("Bank is inactive");
         }
 
-        if (bankRepository.existsByUserIdAndBank_Id(
+        if (bankAccountRepository.existsByUserIdAndBank_Id(
                 user.getId(),
                 bankInfo.getId()
         )) {
@@ -65,7 +65,7 @@ public class BankService {
                 .status(BankStatus.ACTIVE)
                 .build();
 
-        bankRepository.save(bankAccount);
+        bankAccountRepository.save(bankAccount);
 
         return toResponse(bankAccount);
     }
@@ -73,7 +73,7 @@ public class BankService {
     @Transactional(readOnly = true)
     public List<BankResponse> getMyBanks(Long userId) {
 
-        return bankRepository.findAllByUserId(userId)
+        return bankAccountRepository.findAllByUserId(userId)
                 .stream()
                 .filter(bank -> bank.getStatus() == BankStatus.ACTIVE)
                 .map(this::toResponse)
@@ -86,7 +86,7 @@ public class BankService {
             Long bankId
     ) {
 
-        BankAccount bank = bankRepository.findByIdAndUserId(bankId, userId)
+        BankAccount bank = bankAccountRepository.findByIdAndUserId(bankId, userId)
                 .orElseThrow(() ->
                         new NotFoundException("Bank account not found"));
 
@@ -100,9 +100,22 @@ public class BankService {
     @Transactional(readOnly = true)
     public List<BankResponse> getHistory(Long userId) {
 
-        return bankRepository.findAllByUserId(userId)
+        return bankAccountRepository.findAllByUserId(userId)
                 .stream()
                 .map(this::toResponse)
+                .toList();
+    }
+
+    public List<BankMasterResponse> getMasterBanks() {
+
+        return bankRepository.findByActiveTrue()
+                .stream()
+                .map(bank -> BankMasterResponse.builder()
+                        .id(bank.getId())
+                        .code(bank.getCode())
+                        .name(bank.getName())
+                        .logo(bank.getLogo())
+                        .build())
                 .toList();
     }
 
@@ -112,7 +125,7 @@ public class BankService {
             DepositRequest request
     ) {
 
-        BankAccount bank = bankRepository.findByIdForUpdate(request.getBankId())
+        BankAccount bank = bankAccountRepository.findByIdForUpdate(request.getBankId())
                 .orElseThrow(() ->
                         new NotFoundException("Bank account not found"));
 
@@ -161,7 +174,7 @@ public class BankService {
             WithdrawRequest request
     ) {
 
-        BankAccount bank = bankRepository.findByIdForUpdate(request.getBankId())
+        BankAccount bank = bankAccountRepository.findByIdForUpdate(request.getBankId())
                 .orElseThrow(() ->
                         new NotFoundException("Bank account not found"));
 

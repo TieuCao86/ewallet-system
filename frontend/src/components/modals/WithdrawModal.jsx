@@ -111,77 +111,77 @@ export default function WithdrawModal({
         </form>
       )}
 
-      {withdrawStep === 3 && (
-        <form onSubmit={handleVerifyWithdrawOtp}>
-          <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: '0 0 20px', lineHeight: 1.5 }}>
-            Để đảm bảo an toàn cho tài khoản ví, vui lòng xác nhận mã OTP gửi qua SMS tới số điện thoại <strong>{userProfile.phone}</strong> để hoàn tất rút <strong>{displayAmount}đ</strong> về ngân hàng.
-          </p>
+      {/*{withdrawStep === 3 && (*/}
+      {/*  <form onSubmit={handleVerifyWithdrawOtp}>*/}
+      {/*    <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: '0 0 20px', lineHeight: 1.5 }}>*/}
+      {/*      Để đảm bảo an toàn cho tài khoản ví, vui lòng xác nhận mã OTP gửi qua SMS tới số điện thoại <strong>{userProfile.phone}</strong> để hoàn tất rút <strong>{displayAmount}đ</strong> về ngân hàng.*/}
+      {/*    </p>*/}
 
-          {withdrawError && (
-            <div className="error-message" style={{ fontSize: '0.9rem', marginBottom: '16px' }}>
-              <Warning size={16} /> {withdrawError}
-            </div>
-          )}
+      {/*    {withdrawError && (*/}
+      {/*      <div className="error-message" style={{ fontSize: '0.9rem', marginBottom: '16px' }}>*/}
+      {/*        <Warning size={16} /> {withdrawError}*/}
+      {/*      </div>*/}
+      {/*    )}*/}
 
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', marginBottom: '16px' }}>
-            <div style={{ flex: 1 }}>
-              <FormInput
-                label="Mã xác thực OTP (6 chữ số)"
-                id="withdrawOtp"
-                type="password"
-                placeholder="Nhập mã OTP 6 số"
-                value={withdrawOtp}
-                onChange={(e) => setWithdrawOtp(e.target.value.replace(/\D/g, ''))}
-                inputStyle={{ textAlign: 'center', letterSpacing: '8px', fontSize: '1.2rem' }}
-                maxLength="6"
-                required
-                disabled={isWithdrawLoading}
-                style={{ marginBottom: 0 }}
-              />
-            </div>
-            <button
-              type="button"
-              onClick={handleResendWithdrawOtp}
-              disabled={withdrawCountdown > 0 || isWithdrawLoading}
-              className="secondary-button"
-              style={{
-                height: '48px',
-                whiteSpace: 'nowrap',
-                padding: '0 16px',
-                fontSize: '0.88rem',
-                fontWeight: 700,
-                borderRadius: '14px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                minWidth: '120px'
-              }}
-            >
-              {withdrawCountdown > 0 ? `Gửi lại (${withdrawCountdown}s)` : 'Gửi mã'}
-            </button>
-          </div>
+      {/*    <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', marginBottom: '16px' }}>*/}
+      {/*      <div style={{ flex: 1 }}>*/}
+      {/*        <FormInput*/}
+      {/*          label="Mã xác thực OTP (6 chữ số)"*/}
+      {/*          id="withdrawOtp"*/}
+      {/*          type="password"*/}
+      {/*          placeholder="Nhập mã OTP 6 số"*/}
+      {/*          value={withdrawOtp}*/}
+      {/*          onChange={(e) => setWithdrawOtp(e.target.value.replace(/\D/g, ''))}*/}
+      {/*          inputStyle={{ textAlign: 'center', letterSpacing: '8px', fontSize: '1.2rem' }}*/}
+      {/*          maxLength="6"*/}
+      {/*          required*/}
+      {/*          disabled={isWithdrawLoading}*/}
+      {/*          style={{ marginBottom: 0 }}*/}
+      {/*        />*/}
+      {/*      </div>*/}
+      {/*      <button*/}
+      {/*        type="button"*/}
+      {/*        onClick={handleResendWithdrawOtp}*/}
+      {/*        disabled={withdrawCountdown > 0 || isWithdrawLoading}*/}
+      {/*        className="secondary-button"*/}
+      {/*        style={{*/}
+      {/*          height: '48px',*/}
+      {/*          whiteSpace: 'nowrap',*/}
+      {/*          padding: '0 16px',*/}
+      {/*          fontSize: '0.88rem',*/}
+      {/*          fontWeight: 700,*/}
+      {/*          borderRadius: '14px',*/}
+      {/*          display: 'flex',*/}
+      {/*          alignItems: 'center',*/}
+      {/*          justifyContent: 'center',*/}
+      {/*          minWidth: '120px'*/}
+      {/*        }}*/}
+      {/*      >*/}
+      {/*        {withdrawCountdown > 0 ? `Gửi lại (${withdrawCountdown}s)` : 'Gửi mã'}*/}
+      {/*      </button>*/}
+      {/*    </div>*/}
 
-          <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-            <button
-              className="secondary-button"
-              type="button"
-              style={{ flex: 1, minHeight: '46px' }}
-              onClick={onReset}
-              disabled={isWithdrawLoading}
-            >
-              Hủy bỏ
-            </button>
-            <button
-              className="auth-btn"
-              type="submit"
-              style={{ flex: 1, minHeight: '46px' }}
-              disabled={isWithdrawLoading}
-            >
-              {isWithdrawLoading ? <div className="btn-spinner" /> : 'Xác nhận rút'}
-            </button>
-          </div>
-        </form>
-      )}
+      {/*    <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>*/}
+      {/*      <button*/}
+      {/*        className="secondary-button"*/}
+      {/*        type="button"*/}
+      {/*        style={{ flex: 1, minHeight: '46px' }}*/}
+      {/*        onClick={onReset}*/}
+      {/*        disabled={isWithdrawLoading}*/}
+      {/*      >*/}
+      {/*        Hủy bỏ*/}
+      {/*      </button>*/}
+      {/*      <button*/}
+      {/*        className="auth-btn"*/}
+      {/*        type="submit"*/}
+      {/*        style={{ flex: 1, minHeight: '46px' }}*/}
+      {/*        disabled={isWithdrawLoading}*/}
+      {/*      >*/}
+      {/*        {isWithdrawLoading ? <div className="btn-spinner" /> : 'Xác nhận rút'}*/}
+      {/*      </button>*/}
+      {/*    </div>*/}
+      {/*  </form>*/}
+      {/*)}*/}
     </Modal>
   )
 }

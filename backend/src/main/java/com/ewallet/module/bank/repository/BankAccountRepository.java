@@ -16,9 +16,7 @@ public interface BankAccountRepository extends JpaRepository<BankAccount, Long> 
 
     List<BankAccount> findAllByUserId(Long userId);
 
-    boolean existsByAccountNumber(String accountNumber);
-
-    Optional<BankAccount> findByAccountNumber(String accountNumber);
+    Optional<BankAccount> findByIdAndUserId(Long id, Long userId);
 
     boolean existsByUserIdAndBank_Id(Long userId, Long bankId);
 
@@ -28,7 +26,15 @@ public interface BankAccountRepository extends JpaRepository<BankAccount, Long> 
             BankStatus status
     );
 
-    Optional<BankAccount> findByIdAndUserId(Long id, Long userId);
+    boolean existsByBank_IdAndAccountNumber(
+            Long bankId,
+            String accountNumber
+    );
+
+    Optional<BankAccount> findByBank_IdAndAccountNumber(
+            Long bankId,
+            String accountNumber
+    );
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""

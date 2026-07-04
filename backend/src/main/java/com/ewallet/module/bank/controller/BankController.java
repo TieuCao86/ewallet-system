@@ -21,6 +21,19 @@ public class BankController {
     private final BankService bankService;
     private final UserService userService;
 
+    @GetMapping
+    public ApiResponse<List<BankResponse>> getMyBanks(
+            Authentication authentication
+    ) {
+
+        User user = userService.getByEmail(authentication.getName());
+
+        return ApiResponse.success(
+                "Success",
+                bankService.getMyBanks(user.getId())
+        );
+    }
+
     @PostMapping("/link")
     public ApiResponse<BankResponse> linkBank(
             Authentication authentication,
@@ -32,19 +45,6 @@ public class BankController {
         return ApiResponse.success(
                 "Bank linked successfully",
                 bankService.linkBank(user, request)
-        );
-    }
-
-    @GetMapping
-    public ApiResponse<List<BankResponse>> getMyBanks(
-            Authentication authentication
-    ) {
-
-        User user = userService.getByEmail(authentication.getName());
-
-        return ApiResponse.success(
-                "Success",
-                bankService.getMyBanks(user.getId())
         );
     }
 
@@ -96,11 +96,18 @@ public class BankController {
 
         User user = userService.getByEmail(authentication.getName());
 
-        bankService.withdraw(user, request);
-
         return ApiResponse.success(
                 "Withdraw successful",
                 bankService.withdraw(user, request)
+        );
+    }
+
+    @GetMapping("/master")
+    public ApiResponse<List<BankMasterResponse>> getMasterBanks() {
+
+        return ApiResponse.success(
+                "Success",
+                bankService.getMasterBanks()
         );
     }
 }
