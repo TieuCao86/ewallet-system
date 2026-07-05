@@ -1,69 +1,49 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import axios from 'axios'
 import { ArrowLeft, EnvelopeSimple, LockSimple, User, Phone, ShieldCheck } from '@phosphor-icons/react'
 import FormInput from '../components/FormInput.jsx'
 import './Auth.css'
+import authService from "../services/authService";
 
 function Register() {
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState({})
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const navigate = useNavigate()
 
-  // Kiểm tra email trùng
-  const checkEmail = async () => {
-    if (!email || !/\S+@\S+\.\S+/.test(email)) return true;
-
+  // Kiểm tra email trùng (Chỉ dùng cho onBlur cảnh báo sớm)
+  const validateEmailExists = async () => {
+    if (!email || !/\S+@\S+\.\S+/.test(email)) return;
     try {
-      const { data: result } = await axios.get(`http://localhost:8080/api/auth/check-email?email=${encodeURIComponent(email)}`);
-
-      if (result.data) {
-        setFieldErrors(prev => ({
-          ...prev,
-          email: "Địa chỉ email này đã được sử dụng."
-        }));
-        return false;
+      const response = await authService.checkEmail(email);
+      if (response.data.data) {
+        setFieldErrors(prev => ({ ...prev, email: "Địa chỉ email này đã được sử dụng." }));
+      } else {
+        setFieldErrors(prev => ({ ...prev, email: "" }));
       }
     } catch (err) {
-      console.error('Lỗi kiểm tra email:', err);
+      console.error("Lỗi check email:", err);
     }
-
-    setFieldErrors(prev => ({
-      ...prev,
-      email: ""
-    }));
-    return true;
   };
 
-  // Kiểm tra số điện thoại trùng
-  const checkPhone = async () => {
-    if (!phone || !/^(0|\+84)(3|5|7|8|9)[0-9]{8}$/.test(phone)) return true;
-
+  // Kiểm tra số điện thoại trùng (Chỉ dùng cho onBlur cảnh báo sớm)
+  const validatePhoneExists = async () => {
+    if (!phone || !/^(0|\+84)(3|5|7|8|9)[0-9]{8}$/.test(phone)) return;
     try {
-      const { data: result } = await axios.get(`http://localhost:8080/api/auth/check-phone?phone=${encodeURIComponent(phone)}`);
-
-      if (result.data) {
-        setFieldErrors(prev => ({
-          ...prev,
-          phone: "Số điện thoại này đã được đăng ký."
-        }));
-        return false;
+      const response = await authService.checkPhone(phone);
+      if (response.data.data) {
+        setFieldErrors(prev => ({ ...prev, phone: "Số điện thoại này đã được đăng ký." }));
+      } else {
+        setFieldErrors(prev => ({ ...prev, phone: "" }));
       }
     } catch (err) {
-      console.error('Lỗi kiểm tra số điện thoại:', err);
+      console.error("Lỗi check phone:", err);
     }
-
-    setFieldErrors(prev => ({
-      ...prev,
-      phone: ""
-    }));
-    return true;
   };
 
   const validateForm = () => {
@@ -99,57 +79,52 @@ function Register() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setError('')
+    setError("")
 
-    if (!validateForm()) return;
+    // 1. Kiểm tra validation client thuần túy trước
+    if (!validateForm()) return
 
-    const emailOk = await checkEmail();
-    const phoneOk = await checkPhone();
+    // 2. Chặn nếu đang có lỗi hiển thị sẵn từ onBlur
+    if (fieldErrors.email || fieldErrors.phone) return
 
-    if (!emailOk || !phoneOk) {
-      return;
-    }
-
-    setLoading(true)
+    setLoading(true);
 
     try {
-      await axios.post('http://localhost:8080/api/auth/register', {
+      // 3. Tiến hành gọi API Đăng ký. Trùng lặp Email/Phone sẽ do backend check và trả về code.
+      await authService.register({
         fullName,
         email,
         phone,
         password
-      })
+      });
 
-      alert('Chúc mừng! Bạn đã đăng ký tài khoản ví VT Pay thành công.')
-      navigate('/login')
+      alert("Đăng ký thành công!");
+      navigate("/login");
 
     } catch (err) {
-      console.error(err)
-
-      if (err.response && err.response.data) {
-        const resData = err.response.data
-        const code = resData.errorCode
-
-        if (code === 2002) {
-          setError('Địa chỉ email này đã được sử dụng cho một tài khoản khác.')
-        } else if (code === 2003) {
-          setError('Số điện thoại này đã được đăng ký sử dụng.')
-        } else if (code === 4000) {
-          setError(resData.message || 'Dữ liệu nhập vào không hợp lệ.')
-        } else {
-          setError(resData.message || 'Đăng ký không thành công. Vui lòng kiểm tra lại.')
+      if (err.response?.data) {
+        const code = err.response.data.errorCode;
+        switch (code) {
+          case 2002:
+            setFieldErrors(prev => ({ ...prev, email: "Email đã được sử dụng." }));
+            break;
+          case 2003:
+            setFieldErrors(prev => ({ ...prev, phone: "Số điện thoại đã được đăng ký." }));
+            break;
+          default:
+            setError(err.response.data.message || "Đăng ký thất bại.");
         }
       } else {
-        setError('Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại kết nối mạng.')
+        setError("Không thể kết nối máy chủ.");
       }
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   return (
       <div className="auth-page">
-        {/* Left visual pane */}
+        {/* Giữ nguyên phần JSX của bạn... */}
         <div className="auth-visual">
           <div className="auth-visual-header">
             <Link to="/" className="auth-brand">
@@ -190,7 +165,6 @@ function Register() {
           </div>
         </div>
 
-        {/* Right form pane */}
         <div className="auth-content">
           <div className="auth-card">
             <div className="auth-card-header">
@@ -203,7 +177,7 @@ function Register() {
 
             <form className="auth-form" onSubmit={handleSubmit}>
               {error && (
-                  <div className="error-message" style={{ fontSize: '0.9rem', marginBottom: '8px' }}>
+                  <div className="error-message" style={{ fontSize: '0.9rem', marginBottom: '8px', color: 'red' }}>
                     {error}
                   </div>
               )}
@@ -232,7 +206,7 @@ function Register() {
                   disabled={loading}
                   icon={EnvelopeSimple}
                   error={fieldErrors.email}
-                  onBlur={checkEmail}
+                  onBlur={validateEmailExists}
               />
 
               <FormInput
@@ -248,7 +222,7 @@ function Register() {
                   disabled={loading}
                   icon={Phone}
                   error={fieldErrors.phone}
-                  onBlur={checkPhone}
+                  onBlur={validatePhoneExists}
               />
 
               <FormInput
@@ -277,4 +251,4 @@ function Register() {
   )
 }
 
-export default Register
+export default Register;
