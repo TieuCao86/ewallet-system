@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import useAuth from '../hooks/useAuth'
 import { ArrowLeft, EnvelopeSimple, LockSimple, ShieldCheck, Warning } from '@phosphor-icons/react'
 import FormInput from '../components/FormInput.jsx'
 import ToastAlert from '../components/ToastAlert'
@@ -8,10 +9,15 @@ import './Auth.css'
 export default function AdminLogin() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState({})
-  const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState(null)
+
+  const {
+    login,
+    loading,
+    error,
+    setError
+  } = useAuth()
   
   const navigate = useNavigate()
 
@@ -35,67 +41,43 @@ export default function AdminLogin() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setError('')
-    
-    if (!validateForm()) return
-    
-    setLoading(true)
-    
-    try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      })
-      
-      const data = await response.json()
-      
-      if (!response.ok || data.errorCode) {
-        const code = data.errorCode || response.status
-        if (code === 1001 || code === 2001) {
-          setError('Tài khoản hoặc mật khẩu quản trị không chính xác.')
-        } else if (code === 1002) {
-          setError('Tài khoản quản trị viên này hiện đang bị khóa.')
-        } else {
-          setError('Hệ thống từ chối xác thực. Vui lòng thử lại sau.')
-        }
-      } else {
-        // Core login checks
-        if (data.role !== 'ADMIN') {
-          setError('Tài khoản này không có đặc quyền truy cập trang quản trị.')
-          return
-        }
 
-        // Login success
-        localStorage.setItem('accessToken', data.accessToken)
-        localStorage.setItem('tokenType', data.tokenType || 'Bearer')
-        localStorage.setItem('userId', data.userId)
-        localStorage.setItem('email', data.email)
-        localStorage.setItem('role', data.role)
-        
-        setToast({ message: 'Đăng nhập QTV thành công!', type: 'success' })
-        setTimeout(() => {
-          navigate('/admin')
-        }, 1000)
-      }
-    } catch (err) {
-      console.error(err)
-      setError('Không thể kết nối đến API hệ thống. Vui lòng sử dụng tính năng Demo Bypass để thử nghiệm.')
-    } finally {
-      setLoading(false)
+    setError("")
+
+    if (!validateForm()) return
+
+    const result = await login(email, password)
+
+    if (!result.success) return
+
+    if (result.user.role !== "ADMIN") {
+      setError("Tài khoản này không có đặc quyền truy cập trang quản trị.")
+      return
     }
+
+    setToast({
+      message: "Đăng nhập QTV thành công!",
+      type: "success"
+    })
+
+    setTimeout(() => {
+      navigate("/admin")
+    }, 1000)
   }
 
   const handleLoginDemoAdmin = () => {
-    localStorage.setItem('accessToken', 'mock-admin-token-8686')
-    localStorage.setItem('role', 'ADMIN')
-    localStorage.setItem('email', 'vietnb@vtpay.local')
-    localStorage.setItem('userId', '1')
-    setToast({ message: 'Đăng nhập tài khoản Admin Demo thành công!', type: 'success' })
+
+    localStorage.setItem("role", "ADMIN")
+    localStorage.setItem("email", "admin@vtpay.local")
+    localStorage.setItem("userId", "1")
+
+    setToast({
+      message: "Đăng nhập Admin Demo thành công!",
+      type: "success"
+    })
+
     setTimeout(() => {
-      navigate('/admin')
+      navigate("/admin")
     }, 1000)
   }
 
