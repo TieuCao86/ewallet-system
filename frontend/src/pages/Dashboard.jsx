@@ -97,9 +97,7 @@ function Dashboard() {
     const [kycFiles, setKycFiles] = useState({ front: null, back: null, selfie: null })
 
     // Bank accounts linking & loading master state
-    const [linkedBanks, setLinkedBanks] = useState([
-        { id: 'VCB-8686', bankName: 'Vietcombank', logo: 'VCB', accountNumber: '100986868686', cardHolder: 'NGUYEN BA VIET', linkedDate: '2026-06-20' }
-    ])
+    const [linkedBanks, setLinkedBanks] = useState([])
     const [banks, setBanks] = useState([])
     const [selectedBank, setSelectedBank] = useState(null) // Khởi tạo null tránh lỗi crash Object.id
     const [bankAccountNo, setBankAccountNo] = useState('')
@@ -156,19 +154,31 @@ function Dashboard() {
         setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000)
     }
 
-    // Load danh sách ngân hàng hệ thống hỗ trợ
+    // Load danh sách ngân hàng hệ thống hỗ trợ & Tải danh sách liên kết
     useEffect(() => {
-        const loadBanks = async () => {
+        const initDashboardBankData = async () => {
             try {
-                const res = await axios.get('http://localhost:8080/api/banks/master', { withCredentials: true })
-                setBanks(res.data.data)
+                // Chạy song song cả 2 API để tối ưu tốc độ tải trang
+                const [masterRes, linkedRes] = await Promise.all([
+                    axios.get('http://localhost:8080/api/banks/master', { withCredentials: true }),
+                    axios.get('http://localhost:8080/api/banks', { withCredentials: true })
+                ]);
+
+                if (masterRes.data && masterRes.data.success) {
+                    setBanks(masterRes.data.data);
+                }
+
+                if (linkedRes.data && linkedRes.data.success && Array.isArray(linkedRes.data.data)) {
+                    setLinkedBanks(linkedRes.data.data);
+                }
             } catch (err) {
-                console.error(err)
-                showToast('Không tải được danh sách ngân hàng hệ thống', 'error')
+                console.error('Lỗi khởi tạo dữ liệu Bank:', err);
+                showToast('Không tải được danh sách dữ liệu ngân hàng', 'error');
             }
-        }
-        loadBanks()
-    }, [])
+        };
+
+        initDashboardBankData();
+    }, []);
 
     // Xử lý liên kết tài khoản ngân hàng
     const handleLinkBankSubmit = async (e) => {
