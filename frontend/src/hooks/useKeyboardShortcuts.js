@@ -1,7 +1,7 @@
 // hooks/useKeyboardShortcuts.js
 import { useEffect } from 'react'
 
-export function useKeyboardShortcuts(setActiveTab) {
+export default function useKeyboardShortcuts(setActiveTab) {
     useEffect(() => {
         const handleKeyDown = (e) => {
             if (!e.altKey) return

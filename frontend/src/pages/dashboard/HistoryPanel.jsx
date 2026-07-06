@@ -2,18 +2,31 @@ import { DownloadSimple } from '@phosphor-icons/react'
 
 function HistoryPanel({
   wallet,
-  filteredTransactions,
-  filterSearch,
-  setFilterSearch,
-  filterDate,
-  setFilterDate,
-  filterType,
-  setFilterType,
-  filterStatus,
-  setFilterStatus,
+  filter,
   handleExportCSV,
   formatCurrency
 }) {
+
+  const {
+    filteredTransactions,
+
+    filterSearch,
+    setFilterSearch,
+
+    filterDate,
+    setFilterDate,
+
+    filterType,
+    setFilterType,
+
+    filterStatus,
+    setFilterStatus,
+
+    totalIn,
+    totalOut,
+    totalTransactions
+  } = filter;
+
   return (
     <div className="tab-panel">
       <div className="stats-grid" style={{ marginBottom: '24px' }}>
@@ -33,7 +46,7 @@ function HistoryPanel({
           </div>
           <div className="stat-info">
             <span>Tổng nhận (Lọc)</span>
-            <strong>{filteredTransactions.filter(tx => tx.direction === 'IN' && tx.status === 'SUCCESS').reduce((sum, tx) => sum + tx.amount, 0).toLocaleString()}đ</strong>
+            <strong>{totalIn.toLocaleString()}đ</strong>
           </div>
         </div>
 
@@ -43,7 +56,7 @@ function HistoryPanel({
           </div>
           <div className="stat-info">
             <span>Tổng chi (Lọc)</span>
-            <strong>{filteredTransactions.filter(tx => tx.direction === 'OUT' && tx.status === 'SUCCESS').reduce((sum, tx) => sum + tx.amount, 0).toLocaleString()}đ</strong>
+            <strong>{totalOut.toLocaleString()}đ</strong>
           </div>
         </div>
 
@@ -53,7 +66,7 @@ function HistoryPanel({
           </div>
           <div className="stat-info">
             <span>Số giao dịch (Lọc)</span>
-            <strong>{filteredTransactions.length}</strong>
+            <strong>{totalTransactions}</strong>
           </div>
         </div>
       </div>

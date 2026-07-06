@@ -1,7 +1,7 @@
 // hooks/useCountdown.js
 import { useState, useEffect, useRef } from 'react'
 
-export function useCountdown(initialSeconds = 0, storageKey = null) {
+export default function useCountdown(initialSeconds = 0, storageKey = null) {
     const [count, setCount] = useState(() => {
         if (storageKey) {
             const expiry = localStorage.getItem(storageKey)

@@ -4,9 +4,11 @@ import { useNavigate } from 'react-router-dom'
 import { Bell, Gear } from '@phosphor-icons/react'
 
 // Custom Hooks
-import { useFetchWalletData } from '../hooks/useFetchWalletData'
-import { useCountdown } from '../hooks/useCountdown'
-import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
+import useFetchWalletData from '../hooks/useFetchWalletData'
+import useCountdown from '../hooks/useCountdown'
+import useKeyboardShortcuts from '../hooks/useKeyboardShortcuts'
+import useTransactionFilter from "../hooks/useTransactionFilter";
+import useExportCSV from "../hooks/useExportCSV";
 
 // Components & Panels
 import Sidebar from '../components/Sidebar'
@@ -69,10 +71,12 @@ function Dashboard() {
     const [modalPin, setModalPin] = useState({ old: '', new: '', confirm: '' })
 
     // Filters State
-    const [filterType, setFilterType] = useState('ALL')
-    const [filterStatus, setFilterStatus] = useState('ALL')
-    const [filterDate, setFilterDate] = useState('ALL')
-    const [filterSearch, setFilterSearch] = useState('')
+    const transactionFilter = useTransactionFilter(transactions);
+
+    const exportCSV = useExportCSV(
+        transactionFilter.filteredTransactions,
+        wallet?.walletId
+    );
 
     // Transfer Form State
     const [transferPhone, setTransferPhone] = useState('')
@@ -342,20 +346,10 @@ function Dashboard() {
     }
 
     const handleExportCSV = () => {
-        const headers = ['Ma giao dich', 'Nguoi nhan/Nguon', 'Loai giao dich', 'Thoi gian', 'Trang thai', 'So tien (dong)']
-        const rows = filteredTransactions.map(tx => [
-            tx.id, tx.recipient,
-            tx.type === 'TRANSFER' ? 'Chuyen tien' : (tx.type === 'TOPUP' ? 'Nap vi' : 'Rut vi'),
-            tx.date, tx.status === 'SUCCESS' ? 'Thanh cong' : (tx.status === 'PENDING' ? 'Cho xu ly' : 'That bai'), tx.amount
-        ])
-        const csvContent = "\uFEFF" + [headers.join(','), ...rows.map(e => e.map(val => `"${val}"`).join(','))].join('\n')
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-        const link = document.createElement('a')
-        link.setAttribute('href', URL.createObjectURL(blob))
-        link.setAttribute('download', `VTPay_GD_${wallet.walletId}_${new Date().toISOString().substring(0, 10)}.csv`)
-        document.body.appendChild(link); link.click(); document.body.removeChild(link)
-        showToast('Xuất file sao kê báo cáo CSV thành công!')
-    }
+        exportCSV();
+
+        showToast("Xuất file sao kê báo cáo CSV thành công!");
+    };
 
     const handleTransfer = (e) => {
         e.preventDefault()
@@ -516,23 +510,6 @@ function Dashboard() {
         showToast(`Đã gỡ thiết bị: ${name}`)
     }
 
-    // Khối filter lọc danh sách giao dịch
-    const filteredTransactions = transactions.filter(t => {
-        if (filterType !== 'ALL' && t.type !== filterType) return false
-        if (filterStatus !== 'ALL' && t.status !== filterStatus) return false
-        if (filterDate !== 'ALL') {
-            const diffDays = Math.ceil(Math.abs(new Date() - new Date(t.date)) / (1000 * 60 * 60 * 24))
-            if (filterDate === 'TODAY' && diffDays > 1) return false
-            if (filterDate === 'WEEK' && diffDays > 7) return false
-            if (filterDate === 'MONTH' && diffDays > 30) return false
-        }
-        if (filterSearch.trim() !== '') {
-            const q = filterSearch.toLowerCase().trim()
-            return t.id.toLowerCase().includes(q) || t.recipient.toLowerCase().includes(q) || String(t.amount).includes(q)
-        }
-        return true
-    })
-
     const formatCurrency = (val) => Math.abs(val).toLocaleString() + (wallet?.currency || 'đ')
     const formatNumberWithCommas = (val) => val ? parseInt(String(val).replace(/\D/g, ''), 10).toLocaleString('en-US') : ''
     const parseNumberFromCommas = (val) => val ? parseFloat(String(val).replace(/,/g, '')) || 0 : 0
@@ -613,12 +590,22 @@ function Dashboard() {
 
                     {activeTab === 'transactions' && (
                         <TransactionsPanel
-                            handleTransfer={handleTransfer} transferError={transferError} transferPhone={transferPhone} setTransferPhone={setTransferPhone}
-                            transferAmount={transferAmount} setTransferAmount={setTransferAmount} transferNote={transferNote} setTransferNote={setTransferNote}
-                            transferLoading={transferLoading} wallet={wallet} limitPerTransaction={limitPerTransaction} limitPerDay={limitPerDay}
-                            filterDate={filterDate} setFilterDate={setFilterDate} filterType={filterType} setFilterType={setFilterType}
-                            filterStatus={filterStatus} setFilterStatus={setFilterStatus} filteredTransactions={filteredTransactions}
-                            formatCurrency={formatCurrency} formatNumberWithCommas={formatNumberWithCommas} handleExportCSV={handleExportCSV}
+                            handleTransfer={handleTransfer}
+                            transferError={transferError}
+                            transferPhone={transferPhone}
+                            setTransferPhone={setTransferPhone}
+                            transferAmount={transferAmount}
+                            setTransferAmount={setTransferAmount}
+                            transferNote={transferNote}
+                            setTransferNote={setTransferNote}
+                            transferLoading={transferLoading}
+                            wallet={wallet}
+                            limitPerTransaction={limitPerTransaction}
+                            limitPerDay={limitPerDay}
+                            filter={transactionFilter}
+                            formatCurrency={formatCurrency}
+                            formatNumberWithCommas={formatNumberWithCommas}
+                            handleExportCSV={handleExportCSV}
                         />
                     )}
 
@@ -626,9 +613,10 @@ function Dashboard() {
 
                     {activeTab === 'history' && (
                         <HistoryPanel
-                            wallet={wallet} filteredTransactions={filteredTransactions} filterSearch={filterSearch} setFilterSearch={setFilterSearch}
-                            filterDate={filterDate} setFilterDate={setFilterDate} filterType={filterType} setFilterType={setFilterType}
-                            filterStatus={filterStatus} setFilterStatus={setFilterStatus} handleExportCSV={handleExportCSV} formatCurrency={formatCurrency}
+                            wallet={wallet}
+                            filter={transactionFilter}
+                            handleExportCSV={handleExportCSV}
+                            formatCurrency={formatCurrency}
                         />
                     )}
 
