@@ -1,4 +1,4 @@
-import { User, Wallet, Warning, TrendDown, TrendUp, Clock, DownloadSimple } from '@phosphor-icons/react'
+import { User, Wallet, Warning } from '@phosphor-icons/react'
 import FormInput from '../../components/FormInput'
 
 function TransactionsPanel({
@@ -14,17 +14,27 @@ function TransactionsPanel({
   wallet,
   limitPerTransaction,
   limitPerDay,
-  filterDate,
-  setFilterDate,
-  filterType,
-  setFilterType,
-  filterStatus,
-  setFilterStatus,
-  filteredTransactions,
+
+  filter,
+
   formatCurrency,
   formatNumberWithCommas,
   handleExportCSV
 }) {
+
+  const {
+    filteredTransactions,
+
+    filterDate,
+    setFilterDate,
+
+    filterType,
+    setFilterType,
+
+    filterStatus,
+    setFilterStatus
+  } = filter;
+
   return (
     <div className="tab-panel">
       <div className="transfer-grid">
