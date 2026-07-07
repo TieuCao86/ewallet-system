@@ -2,6 +2,7 @@ package com.ewallet.security.service;
 
 import com.ewallet.module.user.entity.User;
 import com.ewallet.module.user.repository.UserRepository;
+import com.ewallet.security.principal.UserPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.*;
 import org.springframework.stereotype.Service;
@@ -20,11 +21,6 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .orElseThrow(() ->
                         new UsernameNotFoundException("User not found"));
 
-        return org.springframework.security.core.userdetails.User
-                .builder()
-                .username(user.getEmail())
-                .password(user.getPassword())
-                .roles(user.getRole().name())
-                .build();
+        return new UserPrincipal(user);
     }
 }

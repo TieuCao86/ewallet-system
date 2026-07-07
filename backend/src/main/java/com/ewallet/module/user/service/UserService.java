@@ -1,8 +1,6 @@
 package com.ewallet.module.user.service;
 
 import com.ewallet.common.exception.*;
-import com.ewallet.module.kyc.entity.Kyc;
-import com.ewallet.module.kyc.service.KycService;
 import com.ewallet.module.user.dto.*;
 import com.ewallet.module.user.entity.User;
 import com.ewallet.module.kyc.enums.KycStatus;
@@ -10,6 +8,7 @@ import com.ewallet.module.user.enums.Role;
 import com.ewallet.module.user.enums.UserStatus;
 import com.ewallet.module.user.repository.UserRepository;
 import com.ewallet.module.wallet.service.WalletService;
+import com.ewallet.module.kyc.service.KycService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -21,17 +20,14 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-
     private final WalletService walletService;
     private final KycService kycService;
 
     @Transactional
     public UserProfileResponse register(RegisterRequest request) {
-
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new BusinessException("Email is already registered");
         }
-
         if (userRepository.existsByPhone(request.getPhone())) {
             throw new BusinessException("Phone number is already registered");
         }
@@ -46,9 +42,7 @@ public class UserService {
                 .build();
 
         User savedUser = userRepository.save(user);
-
         walletService.createWallet(savedUser.getId());
-
         kycService.createDefaultKyc(savedUser.getId());
 
         return toUserProfile(savedUser, KycStatus.PENDING);
@@ -56,69 +50,39 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public UserProfileResponse getProfile(String email) {
-
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() ->
-                        new UserNotFoundException("User not found"));
-
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
         KycStatus status = kycService.getKycStatus(user.getId());
-
         return toUserProfile(user, status);
     }
 
     @Transactional
-    public UserProfileResponse updateProfile(
-            User user,
-            UpdateProfileRequest request
-    ) {
+    public UserProfileResponse updateProfile(String email, UpdateProfileRequest request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         user.setFullName(request.getFullName());
+        // Hibernate dirty checking sẽ tự update cuối method nhờ @Transactional
 
-        return toUserProfile(
-                user,
-                kycService.getKycStatus(user.getId())
-        );
+        return toUserProfile(user, kycService.getKycStatus(user.getId()));
     }
 
     @Transactional
-    public void changePassword(
-            User user,
-            ChangePasswordRequest request
-    ) {
+    public void changePassword(String email, ChangePasswordRequest request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        if (!passwordEncoder.matches(
-                request.getOldPassword(),
-                user.getPassword()
-        )) {
-
-            throw new InvalidCredentialsException(
-                    "Old password is incorrect"
-            );
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
+            throw new InvalidCredentialsException("Old password is incorrect");
+        }
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new InvalidCredentialsException("Password confirmation does not match");
+        }
+        if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+            throw new InvalidCredentialsException("New password must be different from old password");
         }
 
-        if (!request.getNewPassword()
-                .equals(request.getConfirmPassword())) {
-
-            throw new InvalidCredentialsException(
-                    "Password confirmation does not match"
-            );
-        }
-
-        if (passwordEncoder.matches(
-                request.getNewPassword(),
-                user.getPassword()
-        )) {
-
-            throw new InvalidCredentialsException(
-                    "New password must be different from old password"
-            );
-        }
-
-        user.setPassword(
-                passwordEncoder.encode(
-                        request.getNewPassword()
-                )
-        );
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
     }
 
     @Transactional(readOnly = true)
@@ -140,12 +104,13 @@ public class UserService {
     }
 
     @Transactional
-    public void createPin(User user, CreatePinRequest request) {
+    public void createPin(String email, CreatePinRequest request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         if (user.getPin() != null) {
             throw new IllegalStateException("PIN already exists");
         }
-
         if (!request.getPin().equals(request.getConfirmPin())) {
             throw new IllegalArgumentException("PIN confirmation does not match");
         }
@@ -154,12 +119,13 @@ public class UserService {
     }
 
     @Transactional
-    public void changePin(User user, ChangePinRequest request) {
+    public void changePin(String email, ChangePinRequest request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         if (!passwordEncoder.matches(request.getOldPin(), user.getPin())) {
             throw new IllegalArgumentException("Old PIN is incorrect");
         }
-
         if (!request.getNewPin().equals(request.getConfirmPin())) {
             throw new IllegalArgumentException("PIN confirmation does not match");
         }
@@ -168,21 +134,15 @@ public class UserService {
     }
 
     public void validatePin(User user, String rawPin) {
-
         if (user.getPin() == null) {
             throw new InvalidPinException("Please create transaction PIN first");
         }
-
         if (!passwordEncoder.matches(rawPin, user.getPin())) {
             throw new InvalidPinException("Invalid transaction PIN");
         }
     }
 
-    private UserProfileResponse toUserProfile(
-            User user,
-            KycStatus kycStatus
-    ) {
-
+    private UserProfileResponse toUserProfile(User user, KycStatus kycStatus) {
         return UserProfileResponse.builder()
                 .id(user.getId())
                 .fullName(user.getFullName())

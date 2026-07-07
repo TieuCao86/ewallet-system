@@ -5,13 +5,11 @@ import com.ewallet.module.transaction.dto.TransactionResponse;
 import com.ewallet.module.transaction.dto.TransferRequest;
 import com.ewallet.module.transaction.dto.TransferResponse;
 import com.ewallet.module.transaction.service.TransactionService;
-import com.ewallet.module.user.entity.User;
-import com.ewallet.module.user.service.UserService;
+import com.ewallet.security.service.CurrentUserService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,12 +21,12 @@ import java.util.List;
 public class TransactionController {
 
     private final TransactionService transactionService;
-    private final UserService userService;
+    private final CurrentUserService currentUserService;
 
     @GetMapping("/history")
-    public ResponseEntity<ApiResponse<List<TransactionResponse>>> getHistory(Authentication authentication) {
-        User user = userService.getByEmail(authentication.getName());
-        List<TransactionResponse> history = transactionService.getHistory(user.getId());
+    public ResponseEntity<ApiResponse<List<TransactionResponse>>> getHistory() {
+        Long userId = currentUserService.getCurrentUser().getId();
+        List<TransactionResponse> history = transactionService.getHistory(userId);
 
         return ResponseEntity.ok(
                 ApiResponse.success("Transaction history retrieved successfully", history)
@@ -37,11 +35,10 @@ public class TransactionController {
 
     @PostMapping("/transfer")
     public ResponseEntity<ApiResponse<TransferResponse>> transfer(
-            @Valid @RequestBody TransferRequest request,
-            Authentication authentication
+            @Valid @RequestBody TransferRequest request
     ) {
-        User sender = userService.getByEmail(authentication.getName());
-        TransferResponse response = transactionService.transfer(sender, request);
+        Long senderId = currentUserService.getCurrentUser().getId();
+        TransferResponse response = transactionService.transfer(senderId, request);
 
         return ResponseEntity.ok(
                 ApiResponse.success("Transfer completed successfully", response)

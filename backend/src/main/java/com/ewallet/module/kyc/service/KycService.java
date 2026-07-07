@@ -7,7 +7,6 @@ import com.ewallet.module.kyc.dto.KycResponse;
 import com.ewallet.module.kyc.entity.Kyc;
 import com.ewallet.module.kyc.enums.KycStatus;
 import com.ewallet.module.kyc.repository.KycRepository;
-import com.ewallet.module.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,10 +19,8 @@ public class KycService {
 
     @Transactional
     public KycResponse submitKyc(Long userId, KycRequest request) {
-
         Kyc kyc = kycRepository.findByUserId(userId)
-                .orElseThrow(() ->
-                        new NotFoundException("KYC not found"));
+                .orElseThrow(() -> new NotFoundException("KYC not found"));
 
         kyc.setIdentityNumber(request.getIdentityNumber());
         kyc.setAddress(request.getAddress());
@@ -32,10 +29,10 @@ public class KycService {
         kyc.setBackImageUrl(request.getBackImageUrl());
         kyc.setSelfieUrl(request.getSelfieUrl());
 
-        // gửi lại thì quay về Pending
+        // Hồ sơ gửi lên (hoặc gửi lại) sẽ chuyển về trạng thái chờ duyệt
         kyc.setStatus(KycStatus.PENDING);
 
-        return toResponse(kyc);
+        return toResponse(kyc); // Hibernate tự động Flush cập nhật xuống DB khi kết thúc Method nhờ @Transactional
     }
 
     @Transactional(readOnly = true)
@@ -47,10 +44,8 @@ public class KycService {
 
     @Transactional(readOnly = true)
     public void validateKycApproval(Long userId) {
-
         Kyc kyc = kycRepository.findByUserId(userId)
-                .orElseThrow(() ->
-                        new BusinessException("KYC_REQUIRED"));
+                .orElseThrow(() -> new BusinessException("KYC_REQUIRED"));
 
         if (kyc.getStatus() != KycStatus.APPROVED) {
             throw new BusinessException("KYC_REQUIRED");
@@ -59,16 +54,13 @@ public class KycService {
 
     @Transactional(readOnly = true)
     public KycStatus getKycStatus(Long userId) {
-
         return kycRepository.findByUserId(userId)
                 .map(Kyc::getStatus)
-                .orElseThrow(() ->
-                        new NotFoundException("KYC not found"));
+                .orElseThrow(() -> new NotFoundException("KYC not found"));
     }
 
     @Transactional
     public void createDefaultKyc(Long userId) {
-
         if (kycRepository.existsByUserId(userId)) {
             return;
         }
