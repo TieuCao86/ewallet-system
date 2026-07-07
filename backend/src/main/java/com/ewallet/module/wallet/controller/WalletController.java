@@ -1,17 +1,12 @@
 package com.ewallet.module.wallet.controller;
 
 import com.ewallet.common.dto.ApiResponse;
-import com.ewallet.module.user.entity.User;
-import com.ewallet.module.user.service.UserService;
-import com.ewallet.module.wallet.dto.TopUpRequest;
-import com.ewallet.module.wallet.dto.TopUpResponse;
 import com.ewallet.module.wallet.dto.WalletBalanceResponse;
 import com.ewallet.module.wallet.service.WalletService;
+import com.ewallet.security.service.CurrentUserService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -21,24 +16,17 @@ import org.springframework.web.bind.annotation.*;
 public class WalletController {
 
     private final WalletService walletService;
-    private final UserService userService;
+    private final CurrentUserService currentUserService;
 
     @GetMapping("/balance")
-    public ResponseEntity<ApiResponse<WalletBalanceResponse>> getBalance(
-            Authentication authentication
-    ) {
-
-        User user = getCurrentUser(authentication);
+    public ResponseEntity<ApiResponse<WalletBalanceResponse>> getBalance() {
+        Long userId = currentUserService.getCurrentUser().getId();
 
         return ResponseEntity.ok(
                 ApiResponse.success(
                         "Wallet balance retrieved successfully",
-                        walletService.getBalance(user.getId())
+                        walletService.getBalance(userId)
                 )
         );
-    }
-
-    private User getCurrentUser(Authentication authentication) {
-        return userService.getByEmail(authentication.getName());
     }
 }

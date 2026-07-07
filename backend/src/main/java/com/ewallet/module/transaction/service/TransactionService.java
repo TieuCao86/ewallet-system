@@ -115,7 +115,10 @@ public class TransactionService {
     }
 
     @Transactional
-    public TransferResponse transfer(User sender, TransferRequest request) {
+    public TransferResponse transfer(Long senderId, TransferRequest request) {
+        // Tải thực thể sender từ DB lên ngay trong Transaction hiện tại
+        User sender = getUser(senderId);
+
         kycService.validateKycApproval(sender.getId());
         validatePin(sender, request.getPin());
 
@@ -126,6 +129,7 @@ public class TransactionService {
             throw new IllegalArgumentException("Không thể chuyển tiền cho chính bản thân.");
         }
 
+        // Đoạn xử lý tránh Deadlock rất tốt được giữ nguyên
         Wallet senderWallet;
         Wallet receiverWallet;
         if (sender.getId() < receiver.getId()) {
@@ -169,18 +173,15 @@ public class TransactionService {
             TransactionType type,
             String description
     ) {
-
         Transaction transaction = Transaction.builder()
                 .transactionCode(transactionCodeGenerator.generate())
                 .senderUserId(user.getId())
                 .senderName(user.getFullName())
                 .senderPhone(user.getPhone())
-
                 .bankId(bankAccount.getBank().getId())
                 .bankAccountId(bankAccount.getId())
                 .bankNameSnapshot(bankAccount.getBank().getName())
                 .bankAccountNumberSnapshot(bankAccount.getAccountNumber())
-
                 .amount(amount)
                 .fee(BigDecimal.ZERO)
                 .type(type)
