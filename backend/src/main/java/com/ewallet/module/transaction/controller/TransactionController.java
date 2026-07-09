@@ -5,12 +5,12 @@ import com.ewallet.module.transaction.dto.TransactionResponse;
 import com.ewallet.module.transaction.dto.TransferRequest;
 import com.ewallet.module.transaction.dto.TransferResponse;
 import com.ewallet.module.transaction.service.TransactionService;
-import com.ewallet.security.service.CurrentUserService;
+import com.ewallet.security.principal.UserPrincipal;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,43 +22,38 @@ import java.util.List;
 public class TransactionController {
 
     private final TransactionService transactionService;
-    private final CurrentUserService currentUserService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<Page<TransactionResponse>>> getTransactions(
+    public ApiResponse<Page<TransactionResponse>> getTransactions(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-
-        Long userId = currentUserService.getCurrentUser().getId();
-
-        return ResponseEntity.ok(
-                ApiResponse.success(
-                        "Transactions retrieved successfully",
-                        transactionService.getTransactions(userId, page, size)
-                )
+        Long userId = userPrincipal.getUser().getId();
+        return ApiResponse.success(
+                "Transactions retrieved successfully",
+                transactionService.getTransactions(userId, page, size)
         );
     }
 
     @GetMapping("/history")
-    public ResponseEntity<ApiResponse<List<TransactionResponse>>> getHistory() {
-        Long userId = currentUserService.getCurrentUser().getId();
-        List<TransactionResponse> history = transactionService.getHistory(userId);
-
-        return ResponseEntity.ok(
-                ApiResponse.success("Transaction history retrieved successfully", history)
+    public ApiResponse<List<TransactionResponse>> getHistory(@AuthenticationPrincipal UserPrincipal userPrincipal) {
+        Long userId = userPrincipal.getUser().getId();
+        return ApiResponse.success(
+                "Transaction history retrieved successfully",
+                transactionService.getHistory(userId)
         );
     }
 
     @PostMapping("/transfer")
-    public ResponseEntity<ApiResponse<TransferResponse>> transfer(
+    public ApiResponse<TransferResponse> transfer(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
             @Valid @RequestBody TransferRequest request
     ) {
-        Long senderId = currentUserService.getCurrentUser().getId();
-        TransferResponse response = transactionService.transfer(senderId, request);
-
-        return ResponseEntity.ok(
-                ApiResponse.success("Transfer completed successfully", response)
+        Long senderId = userPrincipal.getUser().getId();
+        return ApiResponse.success(
+                "Transfer completed successfully",
+                transactionService.transfer(senderId, request)
         );
     }
 }

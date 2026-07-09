@@ -20,12 +20,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final UserRepository userRepository;
-
     private final PasswordEncoder passwordEncoder;
-
     private final WalletService walletService;
     private final KycService kycService;
-
     private final UserMapper userMapper;
 
     @Transactional
@@ -90,24 +87,6 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
     }
 
-    @Transactional(readOnly = true)
-    public User getByEmail(String email) {
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new NotFoundException("User not found"));
-    }
-
-    @Transactional(readOnly = true)
-    public User getByPhone(String phone) {
-        return userRepository.findByPhone(phone)
-                .orElseThrow(() -> new NotFoundException("User not found"));
-    }
-
-    @Transactional(readOnly = true)
-    public User getById(Long userId) {
-        return userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("User not found"));
-    }
-
     @Transactional
     public void createPin(String email, CreatePinRequest request) {
         User user = userRepository.findByEmail(email)
@@ -138,6 +117,24 @@ public class UserService {
         user.setPin(passwordEncoder.encode(request.getNewPin()));
     }
 
+    @Transactional(readOnly = true)
+    public User getById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+    }
+
+    @Transactional(readOnly = true)
+    public User getByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+    }
+
+    @Transactional(readOnly = true)
+    public User getByPhone(String phone) {
+        return userRepository.findByPhone(phone)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+    }
+
     public void validatePin(User user, String rawPin) {
         if (user.getPin() == null) {
             throw new InvalidPinException("Please create transaction PIN first");
@@ -148,12 +145,12 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public boolean existsByEmail(String email){
+    public boolean existsByEmail(String email) {
         return userRepository.existsByEmail(email);
     }
 
     @Transactional(readOnly = true)
-    public boolean existsByPhone(String phone){
+    public boolean existsByPhone(String phone) {
         return userRepository.existsByPhone(phone);
     }
 }

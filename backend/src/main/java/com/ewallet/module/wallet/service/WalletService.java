@@ -4,6 +4,7 @@ import com.ewallet.common.exception.InsufficientBalanceException;
 import com.ewallet.common.exception.WalletNotFoundException;
 import com.ewallet.module.wallet.dto.WalletBalanceResponse;
 import com.ewallet.module.wallet.entity.Wallet;
+import com.ewallet.module.wallet.mapper.WalletMapper;
 import com.ewallet.module.wallet.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,16 +19,15 @@ public class WalletService {
 
     private final WalletRepository walletRepository;
 
+    private final WalletMapper walletMapper;
+
     @Transactional(readOnly = true)
     public WalletBalanceResponse getBalance(Long userId) {
         // Giữ nguyên: Sử dụng hàm KHÔNG LOCK để tăng tốc độ xem số dư độc lập
         Wallet wallet = walletRepository.findWalletByUserId(userId)
                 .orElseThrow(() -> new WalletNotFoundException("Wallet not found"));
 
-        return WalletBalanceResponse.builder()
-                .walletNumber(wallet.getWalletNumber())
-                .balance(wallet.getBalance())
-                .build();
+        return walletMapper.toBalanceResponse(wallet);
     }
 
     @Transactional
@@ -36,7 +36,7 @@ public class WalletService {
                 .orElseThrow(() -> new WalletNotFoundException("Wallet not found"));
 
         wallet.setBalance(wallet.getBalance().add(amount));
-        return wallet; // Dirty checking tự động cập nhật nhờ @Transactional
+        return wallet;
     }
 
     @Transactional

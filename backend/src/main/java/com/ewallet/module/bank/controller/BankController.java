@@ -4,9 +4,10 @@ import com.ewallet.common.dto.ApiResponse;
 import com.ewallet.module.bank.dto.*;
 import com.ewallet.module.bank.service.BankService;
 import com.ewallet.module.wallet.dto.TopUpResponse;
-import com.ewallet.security.service.CurrentUserService;
+import com.ewallet.security.principal.UserPrincipal;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,47 +18,53 @@ import java.util.List;
 public class BankController {
 
     private final BankService bankService;
-    private final CurrentUserService currentUserService;
 
     @GetMapping
-    public ApiResponse<List<BankResponse>> getMyBanks() {
-        Long userId = currentUserService.getCurrentUser().getId();
-        return ApiResponse.success("Success", bankService.getMyBanks(userId));
-    }
-
-    @PostMapping("/link")
-    public ApiResponse<BankResponse> linkBank(@Valid @RequestBody LinkBankRequest request) {
-        Long userId = currentUserService.getCurrentUser().getId();
-        return ApiResponse.success("Bank linked successfully", bankService.linkBank(userId, request));
-    }
-
-    @GetMapping("/history")
-    public ApiResponse<List<BankResponse>> getHistory() {
-        Long userId = currentUserService.getCurrentUser().getId();
-        return ApiResponse.success("Success", bankService.getHistory(userId));
-    }
-
-    @DeleteMapping("/{bankId}")
-    public ApiResponse<Void> unlinkBank(@PathVariable Long bankId) {
-        Long userId = currentUserService.getCurrentUser().getId();
-        bankService.unlinkBank(userId, bankId);
-        return ApiResponse.success("Bank account unlinked successfully");
-    }
-
-    @PostMapping("/deposit")
-    public ApiResponse<TopUpResponse> deposit(@Valid @RequestBody DepositRequest request) {
-        Long userId = currentUserService.getCurrentUser().getId();
-        return ApiResponse.success("Deposit successful", bankService.deposit(userId, request));
-    }
-
-    @PostMapping("/withdraw")
-    public ApiResponse<WithdrawResponse> withdraw(@Valid @RequestBody WithdrawRequest request) {
-        Long userId = currentUserService.getCurrentUser().getId();
-        return ApiResponse.success("Withdraw successful", bankService.withdraw(userId, request));
+    public ApiResponse<List<BankResponse>> getMyBanks(@AuthenticationPrincipal UserPrincipal userPrincipal) {
+        return ApiResponse.success("Success", bankService.getMyBanks(userPrincipal.getUser().getId()));
     }
 
     @GetMapping("/master")
     public ApiResponse<List<BankMasterResponse>> getMasterBanks() {
         return ApiResponse.success("Success", bankService.getMasterBanks());
+    }
+
+    @GetMapping("/history")
+    public ApiResponse<List<BankResponse>> getHistory(@AuthenticationPrincipal UserPrincipal userPrincipal) {
+        return ApiResponse.success("Success", bankService.getHistory(userPrincipal.getUser().getId()));
+    }
+
+
+    @PostMapping("/link")
+    public ApiResponse<LinkBankResponse> linkBank(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @Valid @RequestBody LinkBankRequest request
+    ) {
+        return ApiResponse.success("Bank linked successfully", bankService.linkBank(userPrincipal.getUser().getId(), request));
+    }
+
+    @PostMapping("/deposit")
+    public ApiResponse<TopUpResponse> deposit(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @Valid @RequestBody DepositRequest request
+    ) {
+        return ApiResponse.success("Deposit successful", bankService.deposit(userPrincipal.getUser().getId(), request));
+    }
+
+    @PostMapping("/withdraw")
+    public ApiResponse<WithdrawResponse> withdraw(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @Valid @RequestBody WithdrawRequest request
+    ) {
+        return ApiResponse.success("Withdraw successful", bankService.withdraw(userPrincipal.getUser().getId(), request));
+    }
+
+    @DeleteMapping("/{bankId}")
+    public ApiResponse<Void> unlinkBank(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable Long bankId
+    ) {
+        bankService.unlinkBank(userPrincipal.getUser().getId(), bankId);
+        return ApiResponse.success("Bank account unlinked successfully");
     }
 }
