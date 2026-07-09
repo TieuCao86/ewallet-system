@@ -19,6 +19,10 @@ import com.ewallet.module.user.repository.UserRepository;
 import com.ewallet.module.wallet.entity.Wallet;
 import com.ewallet.module.wallet.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -71,46 +75,7 @@ public class TransactionService {
                 .findBySenderUserIdOrReceiverUserIdOrderByCreatedAtDesc(userId, userId);
 
         return transactions.stream()
-                .map(tx -> {
-                    TransactionDirection direction;
-                    String otherPartyName;
-
-                    switch (tx.getType()) {
-                        case TRANSFER -> {
-                            if (userId.equals(tx.getSenderUserId())) {
-                                direction = TransactionDirection.OUT;
-                                otherPartyName = tx.getReceiverName();
-                            } else {
-                                direction = TransactionDirection.IN;
-                                otherPartyName = tx.getSenderName();
-                            }
-                        }
-                        case TOP_UP -> {
-                            direction = TransactionDirection.IN;
-                            otherPartyName = "Nạp tiền vào ví";
-                        }
-                        case WITHDRAW -> {
-                            direction = TransactionDirection.OUT;
-                            otherPartyName = "Rút tiền về ngân hàng";
-                        }
-                        default -> {
-                            direction = TransactionDirection.SYSTEM;
-                            otherPartyName = "Hệ thống ví";
-                        }
-                    }
-
-                    return TransactionResponse.builder()
-                            .transactionCode(tx.getTransactionCode())
-                            .amount(tx.getAmount())
-                            .fee(tx.getFee())
-                            .type(tx.getType())
-                            .status(tx.getStatus())
-                            .otherPartyName(otherPartyName)
-                            .direction(direction)
-                            .description(tx.getDescription())
-                            .createdAt(tx.getCreatedAt())
-                            .build();
-                })
+                .map(tx -> toResponse(tx, userId))
                 .toList();
     }
 
@@ -209,5 +174,64 @@ public class TransactionService {
         if (!passwordEncoder.matches(rawPin, user.getPin())) {
             throw new InvalidPinException("Mã PIN giao dịch không chính xác.");
         }
+    }
+
+    public Page<TransactionResponse> getTransactions(Long userId, int page, int size) {
+
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by(Sort.Direction.DESC, "createdAt")
+        );
+
+        return transactionRepository
+                .findBySenderUserIdOrReceiverUserId(
+                        userId,
+                        userId,
+                        pageable
+                )
+                .map(tx -> toResponse(tx, userId));
+    }
+
+    private TransactionResponse toResponse(Transaction tx, Long userId) {
+
+        TransactionDirection direction;
+        String otherPartyName;
+
+        switch (tx.getType()) {
+            case TRANSFER -> {
+                if (userId.equals(tx.getSenderUserId())) {
+                    direction = TransactionDirection.OUT;
+                    otherPartyName = tx.getReceiverName();
+                } else {
+                    direction = TransactionDirection.IN;
+                    otherPartyName = tx.getSenderName();
+                }
+            }
+            case TOP_UP -> {
+                direction = TransactionDirection.IN;
+                otherPartyName = "Nạp tiền vào ví";
+            }
+            case WITHDRAW -> {
+                direction = TransactionDirection.OUT;
+                otherPartyName = "Rút tiền về ngân hàng";
+            }
+            default -> {
+                direction = TransactionDirection.SYSTEM;
+                otherPartyName = "Hệ thống ví";
+            }
+        }
+
+        return TransactionResponse.builder()
+                .transactionCode(tx.getTransactionCode())
+                .amount(tx.getAmount())
+                .fee(tx.getFee())
+                .type(tx.getType())
+                .status(tx.getStatus())
+                .otherPartyName(otherPartyName)
+                .direction(direction)
+                .description(tx.getDescription())
+                .createdAt(tx.getCreatedAt())
+                .build();
     }
 }

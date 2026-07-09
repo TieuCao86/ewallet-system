@@ -9,6 +9,7 @@ import com.ewallet.security.service.CurrentUserService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,6 +23,22 @@ public class TransactionController {
 
     private final TransactionService transactionService;
     private final CurrentUserService currentUserService;
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<Page<TransactionResponse>>> getTransactions(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+
+        Long userId = currentUserService.getCurrentUser().getId();
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Transactions retrieved successfully",
+                        transactionService.getTransactions(userId, page, size)
+                )
+        );
+    }
 
     @GetMapping("/history")
     public ResponseEntity<ApiResponse<List<TransactionResponse>>> getHistory() {
