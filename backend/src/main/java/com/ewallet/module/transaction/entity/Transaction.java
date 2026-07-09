@@ -20,7 +20,7 @@ public class Transaction extends BaseEntity {
     @Column(nullable = false, unique = true)
     private String transactionCode;
 
-    @Column(nullable = false)
+    @Column
     private Long senderUserId;
 
     private Long receiverUserId;
@@ -46,7 +46,7 @@ public class Transaction extends BaseEntity {
     @Column(length = 100)
     private String bankNameSnapshot;
 
-    @Column(length = 20)
+    @Column(length = 50)
     private String bankAccountNumberSnapshot;
 
     @Column(nullable = false, precision = 19, scale = 2)
@@ -57,11 +57,11 @@ public class Transaction extends BaseEntity {
     private BigDecimal fee = BigDecimal.ZERO;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 30)
     private TransactionType type;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 30)
     private TransactionStatus status;
 
     @Column(length = 255)
