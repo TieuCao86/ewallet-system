@@ -6,6 +6,7 @@ import com.ewallet.module.user.entity.User;
 import com.ewallet.module.kyc.enums.KycStatus;
 import com.ewallet.module.user.enums.Role;
 import com.ewallet.module.user.enums.UserStatus;
+import com.ewallet.module.user.mapper.UserMapper;
 import com.ewallet.module.user.repository.UserRepository;
 import com.ewallet.module.wallet.service.WalletService;
 import com.ewallet.module.kyc.service.KycService;
@@ -19,9 +20,13 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final UserRepository userRepository;
+
     private final PasswordEncoder passwordEncoder;
+
     private final WalletService walletService;
     private final KycService kycService;
+
+    private final UserMapper userMapper;
 
     @Transactional
     public UserProfileResponse register(RegisterRequest request) {
@@ -45,7 +50,7 @@ public class UserService {
         walletService.createWallet(savedUser.getId());
         kycService.createDefaultKyc(savedUser.getId());
 
-        return toUserProfile(savedUser, KycStatus.PENDING);
+        return userMapper.toProfile(savedUser, KycStatus.PENDING);
     }
 
     @Transactional(readOnly = true)
@@ -53,7 +58,8 @@ public class UserService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
         KycStatus status = kycService.getKycStatus(user.getId());
-        return toUserProfile(user, status);
+
+        return userMapper.toProfile(user, status);
     }
 
     @Transactional
@@ -62,9 +68,8 @@ public class UserService {
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         user.setFullName(request.getFullName());
-        // Hibernate dirty checking sẽ tự update cuối method nhờ @Transactional
 
-        return toUserProfile(user, kycService.getKycStatus(user.getId()));
+        return userMapper.toProfile(user, kycService.getKycStatus(user.getId()));
     }
 
     @Transactional
@@ -140,18 +145,6 @@ public class UserService {
         if (!passwordEncoder.matches(rawPin, user.getPin())) {
             throw new InvalidPinException("Invalid transaction PIN");
         }
-    }
-
-    private UserProfileResponse toUserProfile(User user, KycStatus kycStatus) {
-        return UserProfileResponse.builder()
-                .id(user.getId())
-                .fullName(user.getFullName())
-                .email(user.getEmail())
-                .phone(user.getPhone())
-                .role(user.getRole())
-                .status(user.getStatus())
-                .kycStatus(kycStatus)
-                .build();
     }
 
     @Transactional(readOnly = true)
