@@ -1,17 +1,20 @@
 import { useMemo, useState } from "react";
 
-export default function useTransactionFilter(transactions) {
+export default function useTransactionFilter(transactions = []) { // Thêm default value = [] để tránh lỗi undefined
     const [filterSearch, setFilterSearch] = useState("");
     const [filterDate, setFilterDate] = useState("ALL");
     const [filterType, setFilterType] = useState("ALL");
     const [filterStatus, setFilterStatus] = useState("ALL");
 
     const filteredTransactions = useMemo(() => {
+        if (!transactions || transactions.length === 0) return []; // Thêm dòng chặn mảng rỗng ban đầu
+
         return transactions.filter(tx => {
             const keyword = filterSearch.toLowerCase();
 
+            // Sửa đổi: Đảm bảo ép kiểu String an toàn trước khi gọi toLowerCase()
             const matchSearch =
-                tx.id.toLowerCase().includes(keyword) ||
+                (tx.id ? String(tx.id).toLowerCase().includes(keyword) : false) ||
                 (tx.recipient ?? "").toLowerCase().includes(keyword) ||
                 String(tx.amount).includes(keyword);
 
