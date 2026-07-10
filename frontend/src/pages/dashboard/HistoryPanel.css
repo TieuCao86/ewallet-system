@@ -1,0 +1,77 @@
+/* Tùy chỉnh thanh cuộn mảnh gọn gàng cho khối danh sách dữ liệu */
+.transaction-table-wrapper::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+.transaction-table-wrapper::-webkit-scrollbar-track {
+    background: transparent;
+}
+.transaction-table-wrapper::-webkit-scrollbar-thumb {
+    background: var(--line, #cbd5e1);
+    border-radius: 10px;
+}
+
+/* 1. SỬA ĐỔI: Thay đổi cách cấu hình khối bọc bảng */
+.transaction-table-wrapper {
+    display: block !important;
+    max-height: 400px !important;
+    overflow-y: auto !important; /* Trả về dạng auto tiêu chuẩn để trình duyệt tự kích hoạt ray cuộn */
+    overflow-x: auto !important; /* Đổi từ hidden sang auto để nếu màn hình nhỏ bảng tự cuộn ngang, không gây crash tính toán chiều cao */
+    position: relative !important;
+    width: 100% !important;
+}
+
+/* 2. SỬA ĐỔI: Khôi phục cấu trúc co dãn tự nhiên của bảng */
+.transaction-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    table-layout: auto !important; /* ĐỔI TỪ fixed SANG auto: Bắt buộc để trình duyệt tính toán đúng scrollHeight khi có dữ liệu mới đổ về */
+}
+
+/* Khắc phục lỗi vị trí của thanh cuộn đè lên tiêu đề bảng (Sticky Header Fix) */
+.transaction-table thead th {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 10 !important;
+    background-color: var(--surface, #ffffff) !important; /* Đồng bộ màu nền để không bị lộ chữ phía dưới khi cuộn lên */
+    box-shadow: inset 0 -1px 0 var(--line, #e2e8f0); /* Thay thế border-bottom thông thường để tránh lỗi hiển thị khi neo tiêu đề */
+}
+
+/* Sửa lỗi ghi đè màu text số tiền âm (Trừ tiền) về màu đỏ chuẩn hệ thống */
+.transaction-amount.negative {
+    color: var(--danger, #ef4444) !important;
+}
+
+/* Các thuộc tính cấu trúc hiển thị cho ô Avatar/Đối tác */
+.recipient-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 700;
+}
+
+.recipient-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--bg, #f1f5f9);
+    color: var(--ink, #475569);
+    display: grid;
+    place-items: center;
+    font-weight: 600;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+}
+
+/* Hiệu ứng xoay tròn của biểu tượng Spinner loading */
+.btn-spinner {
+    border: 2px solid var(--line, #f3f3f3);
+    border-top: 2px solid var(--accent, #3b82f6);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}

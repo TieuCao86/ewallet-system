@@ -9,6 +9,8 @@ import useCountdown from '../hooks/useCountdown'
 import useKeyboardShortcuts from '../hooks/useKeyboardShortcuts'
 import useTransactionFilter from "../hooks/useTransactionFilter"
 import useExportCSV from "../hooks/useExportCSV"
+import { useTransactionsQuery } from '../hooks/useTransactionsQuery'
+import { useQueryClient } from '@tanstack/react-query'
 
 // Components & Panels
 import Sidebar from '../components/Sidebar'
@@ -43,19 +45,35 @@ function Dashboard() {
     const [notifications, setNotifications] = useState([])
     const [showNotifications, setShowNotifications] = useState(false)
 
-    // Sử dụng Hook tối ưu mới
+    // Khởi tạo Client của React Query để quản lý xoá bộ đệm (cache invalidation)
+    const queryClient = useQueryClient();
+
+    // Lấy dữ liệu Core của Ví (Thông tin User, Số dư khả dụng)
     const {
         userProfile,
-        setUserProfile,
         wallet,
-        setWallet,
-        transactions,
-        setTransactions,
-        loading,
+        loading: isCoreLoading,
         isLive,
-        refresh,
-        loadAllTransactions
+        refresh
     } = useFetchWalletData()
+
+    // Kích hoạt React Query điều khiển phân trang và lưu bộ đệm cho luồng giao dịch
+    const {
+        data: txPageData,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+        isLoading: isTxLoading
+    } = useTransactionsQuery();
+
+    // Gom phẳng mảng dữ liệu phân trang từ React Query thành một mảng đơn duy nhất
+    const transactions = useMemo(() => {
+        return txPageData ? txPageData.pages.flatMap(page => page.data) : [];
+    }, [txPageData]);
+
+    // Đút mảng dữ liệu phẳng vào Hook bộ lọc cũ của bạn
+    const historyFilter = useTransactionFilter(transactions);
+    const transactionFilter = useTransactionFilter(transactions);
 
     useKeyboardShortcuts(setActiveTab)
 
@@ -73,7 +91,6 @@ function Dashboard() {
     const [modalPin, setModalPin] = useState({ old: '', new: '', confirm: '' })
 
     // Filters State & Export CSV
-    const transactionFilter = useTransactionFilter(transactions)
     const exportCSV = useExportCSV(transactionFilter.filteredTransactions, wallet?.walletId)
 
     // Transfer Form State độc lập
@@ -150,13 +167,6 @@ function Dashboard() {
         return Math.abs(val).toLocaleString() + (wallet?.currency || 'đ')
     }, [wallet?.currency])
 
-    // 🌟 ĐIỂM CHỐT 1: Lazy-load toàn bộ giao dịch khi chuyển tab lịch sử
-    useEffect(() => {
-        if (activeTab === 'history' || activeTab === 'transactions') {
-            loadAllTransactions(1, 20)
-        }
-    }, [activeTab, loadAllTransactions])
-
     // Load danh sách ngân hàng hệ thống hỗ trợ
     useEffect(() => {
         let isMounted = true
@@ -215,13 +225,16 @@ function Dashboard() {
             setShowTransferConfirm(false)
             setTransferPhone(''); setTransferAmount(''); setTransferNote(''); setTransferPin('')
             showToast('Chuyển tiền thành công!', 'success')
-            refresh() // 🌟 Đồng bộ cập nhật lại số dư ví và thống kê tháng từ API Dashboard mới
+
+            // XÓA BỘ ĐỆM: Buộc React Query tự động xóa danh sách cũ để fetch mới lịch sử ngay lập tức
+            queryClient.invalidateQueries({ queryKey: ["transactions"] });
+            refresh()
         } catch (err) {
             setTransferConfirmError(err.response?.data?.message || 'Chuyển tiền thất bại')
         } finally {
             setIsTransferConfirmLoading(false)
         }
-    }, [transferAmount, transferPhone, transferNote, transferPin, showToast, refresh])
+    }, [transferAmount, transferPhone, transferNote, transferPin, showToast, refresh, queryClient])
 
     // Xử lý rút tiền về bank liên kết
     const handleVerifyWithdrawPin = useCallback(async (e) => {
@@ -241,13 +254,16 @@ function Dashboard() {
 
             showToast(`Rút thành công ${amountVal.toLocaleString()}đ`, 'success')
             setModalAmount(''); setWithdrawPin(''); setWithdrawStep(1); setModalType(null)
-            refresh() // 🌟 Tải lại số dư mới
+
+            // XÓA BỘ ĐỆM: Kích hoạt làm mới lịch sử để hiển thị dòng biến động số dư rút ví vừa thực hiện
+            queryClient.invalidateQueries({ queryKey: ["transactions"] });
+            refresh()
         } catch (err) {
             setWithdrawError(err.response?.data?.message || 'Rút tiền thất bại')
         } finally {
             setIsWithdrawLoading(false)
         }
-    }, [withdrawPin, modalAmount, selectedBank, linkedBanks, showToast, refresh])
+    }, [withdrawPin, modalAmount, selectedBank, linkedBanks, showToast, refresh, queryClient])
 
     const handleLogout = useCallback(() => {
         localStorage.clear()
@@ -260,31 +276,71 @@ function Dashboard() {
         showToast("Xuất file sao kê báo cáo CSV thành công!")
     }, [exportCSV, showToast])
 
-    // 🌟 ĐIỂM CHỐT 2: Bọc kết xuất giao diện vào useMemo để triệt tiêu re-render thừa
+    // Kết xuất giao diện dựa trên cơ chế đồng bộ hóa mượt mà của React Query
     const renderedPanel = useMemo(() => {
         switch (activeTab) {
             case 'overview':
                 return (
                     <OverviewPanel
-                        wallet={wallet} userProfile={userProfile} transactions={transactions} setModalType={setModalType}
-                        setTopupStep={setTopupStep} setWithdrawStep={setWithdrawStep} setModalAmount={setModalAmount}
-                        setTopupPin={setTopupPin} setTopupError={setTopupError} setActiveTab={setActiveTab}
-                        setQrFile={setQrFile} setScanSuccess={setScanSuccess}
+                        wallet={wallet}
+                        userProfile={userProfile}
+                        // Hiển thị 5 bản ghi mới nhất ở trang chủ (overview) bằng hàm slice mảng phẳng cực nhanh
+                        transactions={transactions.slice(0, 5)}
+                        monthlyExpense={wallet?.monthExpense || 0}
+                        monthlyIncome={wallet?.monthIncome || 0}
+                        setModalType={setModalType}
+                        setTopupStep={setTopupStep}
+                        setWithdrawStep={setWithdrawStep}
+                        setModalAmount={setModalAmount}
+                        setTopupPin={setTopupPin}
+                        setTopupError={setTopupError}
+                        setActiveTab={setActiveTab}
+                        setQrFile={setQrFile}
+                        setScanSuccess={setScanSuccess}
                     />
                 )
             case 'transactions':
                 return (
                     <TransactionsPanel
-                        handleTransfer={handleTransfer} transferError={transferError} transferPhone={transferPhone} setTransferPhone={setTransferPhone}
-                        transferAmount={transferAmount} setTransferAmount={setTransferAmount} transferNote={transferNote} setTransferNote={setTransferNote}
-                        transferLoading={transferLoading} wallet={wallet} limitPerTransaction={50000000} limitPerDay={100000000}
-                        filter={transactionFilter} formatCurrency={formatCurrency} formatNumberWithCommas={formatNumberWithCommas} handleExportCSV={handleExportCSV}
+                        handleTransfer={handleTransfer}
+                        transferError={transferError}
+                        transferPhone={transferPhone}
+                        setTransferPhone={setTransferPhone}
+                        transferAmount={transferAmount}
+                        setTransferAmount={setTransferAmount}
+                        transferNote={transferNote}
+                        setTransferNote={setTransferNote}
+                        transferLoading={transferLoading}
+                        wallet={wallet}
+                        limitPerTransaction={50000000}
+                        limitPerDay={100000000}
+                        transactions={transactions}
+                        filter={transactionFilter}
+                        formatCurrency={formatCurrency}
+                        formatNumberWithCommas={formatNumberWithCommas}
+                        handleExportCSV={handleExportCSV}
+                        hasMore={hasNextPage}
+                        onLoadMore={fetchNextPage}
+                        isLoading={isTxLoading}
+                        isFetchingNextPage={isFetchingNextPage}
                     />
                 )
             case 'myqr':
                 return <MyQRPanel userProfile={userProfile} wallet={wallet} handleDownloadQR={() => {}} />
             case 'history':
-                return <HistoryPanel wallet={wallet} filter={transactionFilter} handleExportCSV={handleExportCSV} formatCurrency={formatCurrency} />
+                return (
+                    <HistoryPanel
+                        wallet={wallet}
+                        transactions={transactions}
+                        filter={historyFilter}
+                        handleExportCSV={handleExportCSV}
+                        formatCurrency={formatCurrency}
+                        hasMore={hasNextPage}
+                        onLoadMore={fetchNextPage}
+                        isLoading={isTxLoading}
+                        isFetchingNextPage={isFetchingNextPage}
+                    />
+                )
             case 'bank':
                 return (
                     <BankPanel
@@ -309,9 +365,16 @@ function Dashboard() {
             default:
                 return null
         }
-    }, [activeTab, wallet, userProfile, transactions, transferError, transferPhone, transferAmount, transferNote, transferLoading, transactionFilter, formatCurrency, handleExportCSV, handleTransfer, linkingStep, linkingError, bankPhone, bankAccountNo, selectedBank, isLinkingLoading, bankOtp, linkedBanks, banks, kycFiles, isLive, isEditMode, editProfile, securityToggles, handleLogout, devices, loginHistory])
+    }, [
+        activeTab, wallet, userProfile, transactions, transferError, transferPhone,
+        transferAmount, transferNote, transferLoading, transactionFilter, historyFilter,
+        formatCurrency, handleExportCSV, handleTransfer, linkingStep, linkingError,
+        bankPhone, bankAccountNo, selectedBank, isLinkingLoading, bankOtp, linkedBanks,
+        banks, kycFiles, isLive, isEditMode, editProfile, securityToggles, handleLogout,
+        devices, loginHistory, hasNextPage, fetchNextPage, isTxLoading, isFetchingNextPage
+    ]);
 
-    if (loading) {
+    if (isCoreLoading) {
         return (
             <div style={{ minHeight: '100dvh', display: 'grid', placeItems: 'center', background: 'var(--bg)' }}>
                 <div style={{ textAlign: 'center' }}>
