@@ -6,6 +6,7 @@ import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -14,7 +15,8 @@ import java.util.Optional;
 @Repository
 public interface BankAccountRepository extends JpaRepository<BankAccount, Long> {
 
-    List<BankAccount> findAllByUserId(Long userId);
+    @Query("SELECT ba FROM BankAccount ba JOIN FETCH ba.bank WHERE ba.userId = :userId")
+    List<BankAccount> findAllByUserId(@Param("userId") Long userId);
 
     Optional<BankAccount> findByIdAndUserId(Long id, Long userId);
 
@@ -42,5 +44,5 @@ public interface BankAccountRepository extends JpaRepository<BankAccount, Long> 
         from BankAccount b
         where b.id = :id
     """)
-    Optional<BankAccount> findByIdForUpdate(Long id);
+    Optional<BankAccount> findByIdForUpdate(@Param("id") Long id);
 }

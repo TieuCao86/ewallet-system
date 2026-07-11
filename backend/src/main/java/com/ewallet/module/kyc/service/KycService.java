@@ -55,7 +55,7 @@ public class KycService {
 
     @Transactional(readOnly = true)
     public KycResponse getKyc(Long userId) {
-        Kyc kyc = kycRepository.findByUserId(userId)
+        Kyc kyc = kycRepository.findByUserIdWithUser(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND,
                         "Không tìm thấy dữ liệu định danh.",
                         "Không tồn tại bản ghi KYC cho User ID: " + userId));
@@ -66,9 +66,7 @@ public class KycService {
     public KycStatus getKycStatus(Long userId) {
         return kycRepository.findByUserId(userId)
                 .map(Kyc::getStatus)
-                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND,
-                        "Không tìm thấy thông tin trạng thái định danh.",
-                        "Không tồn tại bản ghi KYC cho User ID: " + userId));
+                .orElse(KycStatus.UNVERIFIED);
     }
 
     @Transactional(readOnly = true)

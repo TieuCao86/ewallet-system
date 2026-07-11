@@ -12,8 +12,8 @@ public interface KycRepository extends JpaRepository<Kyc, Long> {
 
     Optional<Kyc> findByUserId(Long userId);
 
-    @Query("SELECT k.status FROM Kyc k WHERE k.userId = :userId")
-    Optional<KycStatus> findStatusByUserId(@Param("userId") Long userId);
+    @Query(value = "SELECT k.* FROM kyc k INNER JOIN users u ON k.user_id = u.id WHERE k.user_id = :userId", nativeQuery = true)
+    Optional<Kyc> findByUserIdWithUser(@Param("userId") Long userId);
 
     boolean existsByUserId(Long userId);
 }
