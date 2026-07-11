@@ -1,186 +1,170 @@
-import { Warning } from '@phosphor-icons/react'
+import { useState, useEffect } from 'react'
 import Modal from '../Modal'
 import FormInput from '../FormInput'
+import OtpVerification from '../OtpVerification'
+import transactionApi from '../../api/transactionApi'
 
-export default function TopupModal({
-  isOpen,
-  topupStep,
-  topupError,
-  modalAmount,
-  setModalAmount,
-  handleTopupAmountSubmit,
-  handleVerifyTopupPin,
-  handleVerifyTopupOtp,
-  topupPin,
-  setTopupPin,
-  topupOtp,
-  setTopupOtp,
-  isTopupLoading,
-  topupCountdown,
-  handleResendTopupOtp,
-  userProfile,
-  parseNumberFromCommas,
-  formatNumberWithCommas,
-  onBack,
-  onClose,
-  onReset
-}) {
-  const displayAmount = parseNumberFromCommas(modalAmount).toLocaleString()
+const parseNumberFromCommas = (val) => val ? parseFloat(String(val).replace(/,/g, '')) || 0 : 0
+const formatNumberWithCommas = (val) => val ? parseInt(String(val).replace(/\D/g, ''), 10).toLocaleString('en-US') : ''
 
-  return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Nạp tiền vào ví VT Pay"
-    >
-      {topupStep === 1 && (
-        <form onSubmit={handleTopupAmountSubmit}>
-          <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: '0 0 20px', lineHeight: 1.5 }}>
-            Nạp ví từ tài khoản ngân hàng Vietcombank đã liên kết (Số tài khoản: 1009*****686).
-          </p>
+export default function TopupModal({ isOpen, onClose, onSuccess, userProfile, linkedBanks = [] }) {
+    const [topupStep, setTopupStep] = useState(1)
+    const [modalAmount, setModalAmount] = useState('')
+    const [topupPin, setTopupPin] = useState('')
+    const [topupOtp, setTopupOtp] = useState('')
+    const [topupError, setTopupError] = useState('')
+    const [isTopupLoading, setIsTopupLoading] = useState(false)
+    const [topupCountdown, setTopupCountdown] = useState(0)
 
-          {topupError && (
-            <div className="error-message" style={{ fontSize: '0.9rem', marginBottom: '16px' }}>
-              {topupError}
-            </div>
-          )}
+    // Quản lý countdown độc lập bên trong modal
+    useEffect(() => {
+        if (topupCountdown > 0) {
+            const timer = setTimeout(() => setTopupCountdown(topupCountdown - 1), 1000)
+            return () => clearTimeout(timer)
+        }
+    }, [topupCountdown])
 
-          <FormInput
-            label="Số tiền nạp (đ)"
-            id="topAmt"
-            type="text"
-            placeholder="Ví dụ: 100,000"
-            value={modalAmount}
-            onChange={(e) => setModalAmount(formatNumberWithCommas(e.target.value))}
-            style={{ marginBottom: '20px' }}
-            required
-          />
+    const handleClose = () => {
+        setTopupStep(1); setModalAmount(''); setTopupPin(''); setTopupOtp(''); setTopupError(''); setTopupCountdown(0);
+        onClose()
+    }
 
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <button className="secondary-button" type="button" style={{ flex: 1, minHeight: '46px' }} onClick={onClose}>Hủy bỏ</button>
-            <button className="auth-btn" type="submit" style={{ flex: 1, minHeight: '46px' }}>Tiếp tục</button>
-          </div>
-        </form>
-      )}
+    const handleTopupAmountSubmit = (e) => {
+        e.preventDefault()
+        const amountVal = parseNumberFromCommas(modalAmount)
+        if (amountVal < 1000) {
+            setTopupError('Số tiền nạp tối thiểu là 1.000đ')
+            return
+        }
+        setTopupError('')
+        setTopupStep(2)
+    }
 
-      {topupStep === 2 && (
-        <form onSubmit={handleVerifyTopupPin}>
-          <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: '0 0 20px', lineHeight: 1.5 }}>
-            Để xác nhận nạp số tiền <strong>{displayAmount}đ</strong> từ ngân hàng liên kết vào ví VT Pay, vui lòng nhập mã PIN giao dịch của bạn.
-          </p>
+    // Bước 1 Backend: Xác thực PIN -> Gửi OTP
+    const handleVerifyTopupPin = async (e) => {
+        e.preventDefault()
+        setTopupError('')
+        if (!topupPin || topupPin.length !== 6) {
+            return setTopupError('Mã PIN phải gồm 6 chữ số.')
+        }
 
-          {topupError && (
-            <div className="error-message" style={{ fontSize: '0.9rem', marginBottom: '16px' }}>
-              {topupError}
-            </div>
-          )}
+        try {
+            setIsTopupLoading(true)
+            const amountVal = parseNumberFromCommas(modalAmount)
 
-          <FormInput
-            label="Mã PIN giao dịch (6 số)"
-            id="topupPin"
-            type="password"
-            placeholder="Nhập mã PIN giao dịch"
-            value={topupPin}
-            onChange={(e) => setTopupPin(e.target.value.replace(/\D/g, ''))}
-            inputStyle={{ textAlign: 'center', letterSpacing: '8px', fontSize: '1.2rem' }}
-            maxLength="6"
-            required
-            disabled={isTopupLoading}
-          />
+            await transactionApi.initiateDeposit({
+                bankId: linkedBanks[0]?.id || 1,
+                amount: amountVal,
+                pin: topupPin
+            })
 
-          <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-            <button
-              className="secondary-button"
-              type="button"
-              style={{ flex: 1, minHeight: '46px' }}
-              onClick={onBack}
-              disabled={isTopupLoading}
-            >
-              Quay lại
-            </button>
-            <button
-              className="auth-btn"
-              type="submit"
-              style={{ flex: 1, minHeight: '46px' }}
-              disabled={isTopupLoading}
-            >
-              Xác nhận
-            </button>
-          </div>
-        </form>
-      )}
+            setTopupStep(3)
+            setTopupCountdown(60)
+            setTopupOtp('')
+        } catch (err) {
+            setTopupError(err.response?.data?.message || 'Khởi tạo nạp tiền thất bại')
+        } finally {
+            setIsTopupLoading(false)
+        }
+    }
 
-      {topupStep === 3 && (
-        <form onSubmit={handleVerifyTopupOtp}>
-          <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: '0 0 20px', lineHeight: 1.5 }}>
-            Để đảm bảo an toàn cho tài khoản ví, vui lòng xác nhận mã OTP gửi qua SMS tới số điện thoại <strong>{userProfile.phone}</strong> để hoàn tất nạp <strong>{displayAmount}đ</strong> vào ví.
-          </p>
+    // Bước 2 Backend: Xác thực OTP -> Hoàn tất giao dịch
+    const handleVerifyTopupOtp = async (e) => {
+        e.preventDefault()
+        setTopupError('')
+        if (!topupOtp || topupOtp.length !== 6) {
+            return setTopupError('Mã OTP phải gồm 6 chữ số.')
+        }
 
-          {topupError && (
-            <div className="error-message" style={{ fontSize: '0.9rem', marginBottom: '16px' }}>
-              <Warning size={16} /> {topupError}
-            </div>
-          )}
+        try {
+            setIsTopupLoading(true)
+            const amountVal = parseNumberFromCommas(modalAmount)
 
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', marginBottom: '16px' }}>
-            <div style={{ flex: 1 }}>
-              <FormInput
-                label="Mã xác thực OTP (6 chữ số)"
-                id="topupOtp"
-                type="password"
-                placeholder="Nhập mã OTP 6 số"
-                value={topupOtp}
-                onChange={(e) => setTopupOtp(e.target.value.replace(/\D/g, ''))}
-                inputStyle={{ textAlign: 'center', letterSpacing: '8px', fontSize: '1.2rem' }}
-                maxLength="6"
-                required
-                disabled={isTopupLoading}
-                style={{ marginBottom: 0 }}
-              />
-            </div>
-            <button
-              type="button"
-              onClick={handleResendTopupOtp}
-              disabled={topupCountdown > 0 || isTopupLoading}
-              className="secondary-button"
-              style={{
-                height: '48px',
-                whiteSpace: 'nowrap',
-                padding: '0 16px',
-                fontSize: '0.88rem',
-                fontWeight: 700,
-                borderRadius: '14px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                minWidth: '120px'
-              }}
-            >
-              {topupCountdown > 0 ? `Gửi lại (${topupCountdown}s)` : 'Gửi mã'}
-            </button>
-          </div>
+            await transactionApi.confirmDeposit({
+                bankId: linkedBanks[0]?.id || 1,
+                amount: amountVal,
+                pin: topupPin
+            }, topupOtp)
 
-          <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-            <button
-              className="secondary-button"
-              type="button"
-              style={{ flex: 1, minHeight: '46px' }}
-              onClick={onReset}
-              disabled={isTopupLoading}
-            >
-              Hủy bỏ
-            </button>
-            <button
-              className="auth-btn"
-              type="submit"
-              style={{ flex: 1, minHeight: '46px' }}
-              disabled={isTopupLoading}
-            >
-              {isTopupLoading ? <div className="btn-spinner" /> : 'Xác nhận nạp'}
-            </button>
-          </div>
-        </form>
-      )}
-    </Modal>
-  )
+            onSuccess(`Nạp thành công ${amountVal.toLocaleString()}đ vào ví`)
+            handleClose()
+        } catch (err) {
+            setTopupError(
+                err.response?.data?.message || "OTP không chính xác"
+            );
+        } finally {
+            setIsTopupLoading(false)
+        }
+    }
+
+    const handleResendTopupOtp = async () => {
+        setTopupError('')
+        try {
+            await transactionApi.initiateDeposit({
+                bankId: linkedBanks[0]?.id || 1,
+                amount: parseNumberFromCommas(modalAmount),
+                pin: topupPin
+            })
+            setTopupCountdown(60)
+            setTopupOtp('')
+        } catch (err) {
+            setTopupError('Không thể gửi lại mã OTP lúc này.')
+        }
+    }
+
+    const displayAmount = parseNumberFromCommas(modalAmount).toLocaleString()
+
+    return (
+        <Modal isOpen={isOpen} onClose={handleClose} title="Nạp tiền vào ví VT Pay">
+            {topupStep === 1 && (
+                <form onSubmit={handleTopupAmountSubmit}>
+                    <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: '0 0 20px', lineHeight: 1.5 }}>
+                        Nạp ví từ tài khoản ngân hàng Vietcombank đã liên kết (Số tài khoản: 1009*****686).
+                    </p>
+
+                    {topupError && <div className="error-message" style={{ fontSize: '0.9rem', marginBottom: '16px' }}>{topupError}</div>}
+
+                    <FormInput
+                        label="Số tiền nạp (đ)" id="topAmt" type="text" placeholder="Ví dụ: 100,000"
+                        value={modalAmount} onChange={(e) => setModalAmount(formatNumberWithCommas(e.target.value))}
+                        style={{ marginBottom: '20px' }} required
+                    />
+
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                        <button className="secondary-button" type="button" style={{ flex: 1, minHeight: '46px' }} onClick={handleClose}>Hủy bỏ</button>
+                        <button className="auth-btn" type="submit" style={{ flex: 1, minHeight: '46px' }}>Tiếp tục</button>
+                    </div>
+                </form>
+            )}
+
+            {topupStep === 2 && (
+                <form onSubmit={handleVerifyTopupPin}>
+                    <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: '0 0 20px', lineHeight: 1.5 }}>
+                        Để xác nhận nạp số tiền <strong>{displayAmount}đ</strong> từ ngân hàng liên kết vào ví VT Pay, vui lòng nhập mã PIN giao dịch của bạn.
+                    </p>
+
+                    {topupError && <div className="error-message" style={{ fontSize: '0.9rem', marginBottom: '16px' }}>{topupError}</div>}
+
+                    <FormInput
+                        label="Mã PIN giao dịch (6 số)" id="topupPin" type="password" placeholder="Nhập mã PIN giao dịch"
+                        value={topupPin} onChange={(e) => setTopupPin(e.target.value.replace(/\D/g, ''))}
+                        inputStyle={{ textAlign: 'center', letterSpacing: '8px', fontSize: '1.2rem' }} maxLength="6" required disabled={isTopupLoading}
+                    />
+
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+                        <button className="secondary-button" type="button" style={{ flex: 1, minHeight: '46px' }} onClick={() => setTopupStep(1)} disabled={isTopupLoading}>Quay lại</button>
+                        <button className="auth-btn" type="submit" style={{ flex: 1, minHeight: '46px' }} disabled={isTopupLoading}>Xác nhận</button>
+                    </div>
+                </form>
+            )}
+
+            {topupStep === 3 && (
+                <OtpVerification
+                    phone={userProfile?.phone} amount={displayAmount} action="nạp" otp={topupOtp} setOtp={setTopupOtp}
+                    loading={isTopupLoading} countdown={topupCountdown} onSubmit={handleVerifyTopupOtp} onResend={handleResendTopupOtp}
+                    onCancel={handleClose} error={topupError} confirmText="Xác nhận nạp"
+                />
+            )}
+        </Modal>
+    )
 }

@@ -1,7 +1,8 @@
 package com.ewallet.common.exception;
 
 import com.ewallet.common.dto.ApiResponse;
-import org.springframework.http.HttpStatus;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -10,93 +11,44 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.stream.Collectors;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // 1. Lỗi Validate dữ liệu đầu vào từ DTO (@Valid)
+    // 1. Đánh chặn toàn bộ lỗi Nghiệp vụ (BusinessException và các class con)
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<ApiResponse<Void>> handleBusinessException(BusinessException ex, HttpServletRequest request) {
+        ErrorCode errorCode = ex.getErrorCode();
+
+        log.warn("[BUSINESS EXCEPTION] Code: {} | Path: {} | Internal Log: {}",
+                errorCode.getCode(), request.getRequestURI(), ex.getLogMessage());
+
+        return ResponseEntity
+                .status(errorCode.getHttpStatus())
+                .body(ApiResponse.error(errorCode.getCode(), ex.getMessage(), request.getRequestURI()));
+    }
+
+    // 2. Đánh chặn lỗi Validate định dạng đầu vào từ DTO (@Valid)
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Void>> handleValidationException(MethodArgumentNotValidException ex) {
-        String errorMessage = ex.getBindingResult().getFieldErrors().stream()
+    public ResponseEntity<ApiResponse<Void>> handleValidationException(MethodArgumentNotValidException ex, HttpServletRequest request) {
+        String errors = ex.getBindingResult().getFieldErrors().stream()
                 .map(FieldError::getDefaultMessage)
                 .collect(Collectors.joining(", "));
 
-        return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error(4000, errorMessage));
-    }
-
-    // 2. Lỗi Không tìm thấy tài nguyên (UserNotFound, WalletNotFound, BankNotFound...)
-    @ExceptionHandler({NotFoundException.class, UserNotFoundException.class, WalletNotFoundException.class})
-    public ResponseEntity<ApiResponse<Void>> handleNotFoundException(RuntimeException ex) {
-        int code = 4004; // Resource Not Found chung
-        String msg = ex.getMessage() != null ? ex.getMessage().toLowerCase() : "";
-
-        if (msg.contains("ví") || msg.contains("wallet")) {
-            code = 3001; // Không tìm thấy ví
-        } else if (msg.contains("người dùng") || msg.contains("user")) {
-            code = 2001; // Không tìm thấy người dùng
-        }
+        log.warn("[VALIDATION FAILED] Path: {} | Details: {}", request.getRequestURI(), errors);
 
         return ResponseEntity
-                .status(HttpStatus.NOT_FOUND)
-                .body(ApiResponse.error(code, ex.getMessage()));
+                .status(ErrorCode.VALIDATION_ERROR.getHttpStatus())
+                .body(ApiResponse.error(ErrorCode.VALIDATION_ERROR.getCode(), errors, request.getRequestURI()));
     }
 
-    // 3. Lỗi Sai thông tin đăng nhập/Bảo mật
-    @ExceptionHandler(InvalidCredentialsException.class)
-    public ResponseEntity<ApiResponse<Void>> handleInvalidCredentials(InvalidCredentialsException ex) {
-        return ResponseEntity
-                .status(HttpStatus.UNAUTHORIZED)
-                .body(ApiResponse.error(1001, ex.getMessage()));
-    }
-
-    // 4. Lỗi liên quan tới giao dịch mã PIN sai
-    @ExceptionHandler(InvalidPinException.class)
-    public ResponseEntity<ApiResponse<Void>> handleInvalidPinException(InvalidPinException ex) {
-        return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error(1004, ex.getMessage())); // Mã lỗi sai PIN
-    }
-
-    // 5. Lỗi không đủ tiền trong tài khoản ví/ngân hàng
-    @ExceptionHandler(InsufficientBalanceException.class)
-    public ResponseEntity<ApiResponse<Void>> handleInsufficientBalance(InsufficientBalanceException ex) {
-        return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error(3002, ex.getMessage())); // Mã lỗi hết tiền/Số dư không đủ
-    }
-
-    // 6. Lỗi Logic nghiệp vụ (Business Logic Exception)
-    @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<ApiResponse<Void>> handleBusinessBadRequestException(BusinessException ex) {
-        int code = 4000;
-        String msg = ex.getMessage() != null ? ex.getMessage().toLowerCase() : "";
-
-        if (msg.contains("email")) {
-            code = 2002; // Trùng địa chỉ email
-        } else if (msg.contains("phone") || msg.contains("số điện thoại")) {
-            code = 2003; // Trùng số điện thoại
-        } else if (msg.contains("khóa") || msg.contains("locked")) {
-            code = 1002; // Tài khoản bị khóa
-        } else if (msg.contains("vô hiệu") || msg.contains("disabled")) {
-            code = 1003; // Tài khoản bị vô hiệu hóa
-        } else if (msg.contains("kyc")) {
-            code = 5001; // Chưa hoàn tất KYC/Yêu cầu KYC
-        }
-
-        return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error(code, ex.getMessage()));
-    }
-
-    // 7. Chốt chặn cuối cùng: Lỗi hệ thống không mong muốn (Lỗi 500)
+    // 3. Chốt chặn cuối cùng: Hệ thống sập, lỗi DB, NullPointerException (Lỗi 500)
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Void>> handleGeneralException(Exception ex) {
-        // Log lỗi ra console/file để Dev kiểm tra hệ thống nội bộ
-        ex.printStackTrace();
+    public ResponseEntity<ApiResponse<Void>> handleGeneralException(Exception ex, HttpServletRequest request) {
+        log.error("[CRITICAL SYSTEM ERROR] Path: {} | Uncaught exception occurred: ", request.getRequestURI(), ex);
 
         return ResponseEntity
-                .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error(5000, "An unexpected error occurred. Please try again later."));
+                .status(ErrorCode.INTERNAL_SERVER_ERROR.getHttpStatus())
+                .body(ApiResponse.error(ErrorCode.INTERNAL_SERVER_ERROR.getCode(), ErrorCode.INTERNAL_SERVER_ERROR.getMessage(), request.getRequestURI()));
     }
 }

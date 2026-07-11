@@ -1,187 +1,167 @@
-import { Warning } from '@phosphor-icons/react'
+import { useState, useEffect } from 'react'
 import Modal from '../Modal'
 import FormInput from '../FormInput'
+import OtpVerification from '../OtpVerification'
+import transactionApi from '../../api/transactionApi'
 
-export default function WithdrawModal({
-  isOpen,
-  withdrawStep,
-  withdrawError,
-  modalAmount,
-  setModalAmount,
-  handleWithdrawAmountSubmit,
-  handleVerifyWithdrawPin,
-  handleVerifyWithdrawOtp,
-  withdrawPin,
-  setWithdrawPin,
-  withdrawOtp,
-  setWithdrawOtp,
-  isWithdrawLoading,
-  withdrawCountdown,
-  handleResendWithdrawOtp,
-  wallet,
-  userProfile,
-  parseNumberFromCommas,
-  formatNumberWithCommas,
-  onBack,
-  onClose,
-  onReset
-}) {
-  const displayAmount = parseNumberFromCommas(modalAmount).toLocaleString()
+const parseNumberFromCommas = (val) => val ? parseFloat(String(val).replace(/,/g, '')) || 0 : 0
+const formatNumberWithCommas = (val) => val ? parseInt(String(val).replace(/\D/g, ''), 10).toLocaleString('en-US') : ''
 
-  return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Rút tiền về tài khoản ngân hàng"
-    >
-      {withdrawStep === 1 && (
-        <form onSubmit={handleWithdrawAmountSubmit}>
-          <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: '0 0 20px', lineHeight: 1.5 }}>
-            Chuyển tiền từ tài khoản ví VT Pay về ngân hàng liên kết. Số dư khả dụng hiện tại: <strong style={{ color: 'var(--accent)' }}>{wallet.balance.toLocaleString()}đ</strong>.
-          </p>
+export default function WithdrawModal({ isOpen, onClose, onSuccess, wallet, userProfile, linkedBanks = [] }) {
+    // --- BỐC TÁCH STATE TỪ DASHBOARD VÀO ĐÂY ---
+    const [withdrawStep, setWithdrawStep] = useState(1)
+    const [modalAmount, setModalAmount] = useState('')
+    const [withdrawPin, setWithdrawPin] = useState('')
+    const [withdrawOtp, setWithdrawOtp] = useState('')
+    const [withdrawError, setWithdrawError] = useState('')
+    const [isWithdrawLoading, setIsWithdrawLoading] = useState(false)
+    const [withdrawCountdown, setWithdrawCountdown] = useState(0)
 
-          {withdrawError && (
-            <div className="error-message" style={{ fontSize: '0.9rem', marginBottom: '16px' }}>
-              {withdrawError}
-            </div>
-          )}
+    // Quản lý countdown độc lập bên trong modal
+    useEffect(() => {
+        if (withdrawCountdown > 0) {
+            const timer = setTimeout(() => setWithdrawCountdown(withdrawCountdown - 1), 1000)
+            return () => clearTimeout(timer)
+        }
+    }, [withdrawCountdown])
 
-          <FormInput
-            label="Số tiền rút (đ)"
-            id="withAmt"
-            type="text"
-            placeholder="Ví dụ: 50,000"
-            value={modalAmount}
-            onChange={(e) => setModalAmount(formatNumberWithCommas(e.target.value))}
-            style={{ marginBottom: '20px' }}
-            required
-          />
+    const handleClose = () => {
+        setWithdrawStep(1); setModalAmount(''); setWithdrawPin(''); setWithdrawOtp(''); setWithdrawError(''); setWithdrawCountdown(0);
+        onClose()
+    }
 
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <button className="secondary-button" type="button" style={{ flex: 1, minHeight: '46px' }} onClick={onClose}>Hủy bỏ</button>
-            <button className="auth-btn" type="submit" style={{ flex: 1, minHeight: '46px' }}>Tiếp tục</button>
-          </div>
-        </form>
-      )}
+    const handleWithdrawAmountSubmit = (e) => {
+        e.preventDefault()
+        const amountVal = parseNumberFromCommas(modalAmount)
+        if (amountVal <= 0) return setWithdrawError('Vui lòng nhập số tiền hợp lệ.')
+        if (amountVal > (wallet?.balance || 0)) return setWithdrawError('Số dư khả dụng không đủ.')
+        setWithdrawError('')
+        setWithdrawStep(2)
+    }
 
-      {withdrawStep === 2 && (
-        <form onSubmit={handleVerifyWithdrawPin}>
-          <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: '0 0 20px', lineHeight: 1.5 }}>
-            Để xác nhận rút số tiền <strong>{displayAmount}đ</strong> về tài khoản ngân hàng liên kết, vui lòng nhập mã PIN giao dịch của bạn.
-          </p>
+    // Bước 1 Backend: Xác thực PIN -> Gửi OTP
+    const handleVerifyWithdrawPin = async (e) => {
+        e.preventDefault()
+        setWithdrawError('')
+        if (!withdrawPin || withdrawPin.length !== 6 || isNaN(withdrawPin)) {
+            return setWithdrawError('Mã PIN giao dịch phải gồm 6 chữ số.')
+        }
 
-          {withdrawError && (
-            <div className="error-message" style={{ fontSize: '0.9rem', marginBottom: '16px' }}>
-              {withdrawError}
-            </div>
-          )}
+        try {
+            setIsWithdrawLoading(true)
+            const amountVal = parseNumberFromCommas(modalAmount)
 
-          <FormInput
-            label="Mã PIN giao dịch (6 số)"
-            id="withdrawPin"
-            type="password"
-            placeholder="Nhập mã PIN giao dịch"
-            value={withdrawPin}
-            onChange={(e) => setWithdrawPin(e.target.value.replace(/\D/g, ''))}
-            inputStyle={{ textAlign: 'center', letterSpacing: '8px', fontSize: '1.2rem' }}
-            maxLength="6"
-            required
-            disabled={isWithdrawLoading}
-          />
+            await transactionApi.initiateWithdraw({
+                bankId: linkedBanks[0]?.id || 1,
+                amount: amountVal,
+                pin: withdrawPin
+            })
 
-          <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-            <button
-              className="secondary-button"
-              type="button"
-              style={{ flex: 1, minHeight: '46px' }}
-              onClick={onBack}
-              disabled={isWithdrawLoading}
-            >
-              Quay lại
-            </button>
-            <button
-              className="auth-btn"
-              type="submit"
-              style={{ flex: 1, minHeight: '46px' }}
-              disabled={isWithdrawLoading}
-            >
-              Xác nhận
-            </button>
-          </div>
-        </form>
-      )}
+            setWithdrawStep(3)
+            setWithdrawCountdown(60)
+            setWithdrawOtp('')
+        } catch (err) {
+            setWithdrawError(err.response?.data?.message || 'Khởi tạo rút tiền thất bại')
+        } finally {
+            setIsWithdrawLoading(false)
+        }
+    }
 
-      {/*{withdrawStep === 3 && (*/}
-      {/*  <form onSubmit={handleVerifyWithdrawOtp}>*/}
-      {/*    <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: '0 0 20px', lineHeight: 1.5 }}>*/}
-      {/*      Để đảm bảo an toàn cho tài khoản ví, vui lòng xác nhận mã OTP gửi qua SMS tới số điện thoại <strong>{userProfile.phone}</strong> để hoàn tất rút <strong>{displayAmount}đ</strong> về ngân hàng.*/}
-      {/*    </p>*/}
+    // Bước 2 Backend: Xác thực OTP -> Hoàn tất giao dịch
+    const handleVerifyWithdrawOtp = async (e) => {
+        e.preventDefault()
+        setWithdrawError('')
+        if (!withdrawOtp || withdrawOtp.length !== 6) {
+            return setWithdrawError('Mã OTP phải gồm 6 chữ số.')
+        }
 
-      {/*    {withdrawError && (*/}
-      {/*      <div className="error-message" style={{ fontSize: '0.9rem', marginBottom: '16px' }}>*/}
-      {/*        <Warning size={16} /> {withdrawError}*/}
-      {/*      </div>*/}
-      {/*    )}*/}
+        try {
+            setIsWithdrawLoading(true)
+            const amountVal = parseNumberFromCommas(modalAmount)
 
-      {/*    <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', marginBottom: '16px' }}>*/}
-      {/*      <div style={{ flex: 1 }}>*/}
-      {/*        <FormInput*/}
-      {/*          label="Mã xác thực OTP (6 chữ số)"*/}
-      {/*          id="withdrawOtp"*/}
-      {/*          type="password"*/}
-      {/*          placeholder="Nhập mã OTP 6 số"*/}
-      {/*          value={withdrawOtp}*/}
-      {/*          onChange={(e) => setWithdrawOtp(e.target.value.replace(/\D/g, ''))}*/}
-      {/*          inputStyle={{ textAlign: 'center', letterSpacing: '8px', fontSize: '1.2rem' }}*/}
-      {/*          maxLength="6"*/}
-      {/*          required*/}
-      {/*          disabled={isWithdrawLoading}*/}
-      {/*          style={{ marginBottom: 0 }}*/}
-      {/*        />*/}
-      {/*      </div>*/}
-      {/*      <button*/}
-      {/*        type="button"*/}
-      {/*        onClick={handleResendWithdrawOtp}*/}
-      {/*        disabled={withdrawCountdown > 0 || isWithdrawLoading}*/}
-      {/*        className="secondary-button"*/}
-      {/*        style={{*/}
-      {/*          height: '48px',*/}
-      {/*          whiteSpace: 'nowrap',*/}
-      {/*          padding: '0 16px',*/}
-      {/*          fontSize: '0.88rem',*/}
-      {/*          fontWeight: 700,*/}
-      {/*          borderRadius: '14px',*/}
-      {/*          display: 'flex',*/}
-      {/*          alignItems: 'center',*/}
-      {/*          justifyContent: 'center',*/}
-      {/*          minWidth: '120px'*/}
-      {/*        }}*/}
-      {/*      >*/}
-      {/*        {withdrawCountdown > 0 ? `Gửi lại (${withdrawCountdown}s)` : 'Gửi mã'}*/}
-      {/*      </button>*/}
-      {/*    </div>*/}
+            await transactionApi.confirmWithdraw({
+                bankId: linkedBanks[0]?.id || 1,
+                amount: amountVal,
+                pin: withdrawPin
+            }, withdrawOtp)
 
-      {/*    <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>*/}
-      {/*      <button*/}
-      {/*        className="secondary-button"*/}
-      {/*        type="button"*/}
-      {/*        style={{ flex: 1, minHeight: '46px' }}*/}
-      {/*        onClick={onReset}*/}
-      {/*        disabled={isWithdrawLoading}*/}
-      {/*      >*/}
-      {/*        Hủy bỏ*/}
-      {/*      </button>*/}
-      {/*      <button*/}
-      {/*        className="auth-btn"*/}
-      {/*        type="submit"*/}
-      {/*        style={{ flex: 1, minHeight: '46px' }}*/}
-      {/*        disabled={isWithdrawLoading}*/}
-      {/*      >*/}
-      {/*        {isWithdrawLoading ? <div className="btn-spinner" /> : 'Xác nhận rút'}*/}
-      {/*      </button>*/}
-      {/*    </div>*/}
-      {/*  </form>*/}
-      {/*)}*/}
-    </Modal>
-  )
+            onSuccess(`Rút thành công ${amountVal.toLocaleString()}đ về ngân hàng`)
+            handleClose()
+        } catch (err) {
+            setWithdrawError(err.response?.data?.message || 'Mã OTP không chính xác')
+        } finally {
+            setIsWithdrawLoading(false)
+        }
+    }
+
+    const handleResendWithdrawOtp = async () => {
+        setWithdrawError('')
+        try {
+            await transactionApi.initiateWithdraw({
+                bankId: linkedBanks[0]?.id || 1,
+                amount: parseNumberFromCommas(modalAmount),
+                pin: withdrawPin
+            })
+            setWithdrawCountdown(60)
+            setWithdrawOtp('')
+        } catch (err) {
+            setWithdrawError('Không thể gửi lại mã OTP lúc này.')
+        }
+    }
+
+    const displayAmount = parseNumberFromCommas(modalAmount).toLocaleString()
+
+    return (
+        <Modal isOpen={isOpen} onClose={handleClose} title="Rút tiền về tài khoản ngân hàng">
+            {withdrawStep === 1 && (
+                <form onSubmit={handleWithdrawAmountSubmit}>
+                    <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: '0 0 20px', lineHeight: 1.5 }}>
+                        Chuyển tiền từ tài khoản ví VT Pay về ngân hàng liên kết. Số dư khả dụng hiện tại: <strong style={{ color: 'var(--accent)' }}>{wallet?.balance?.toLocaleString()}đ</strong>.
+                    </p>
+
+                    {withdrawError && <div className="error-message" style={{ fontSize: '0.9rem', marginBottom: '16px' }}>{withdrawError}</div>}
+
+                    <FormInput
+                        label="Số tiền rút (đ)" id="withAmt" type="text" placeholder="Ví dụ: 50,000"
+                        value={modalAmount} onChange={(e) => setModalAmount(formatNumberWithCommas(e.target.value))}
+                        style={{ marginBottom: '20px' }} required
+                    />
+
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                        <button className="secondary-button" type="button" style={{ flex: 1, minHeight: '46px' }} onClick={handleClose}>Hủy bỏ</button>
+                        <button className="auth-btn" type="submit" style={{ flex: 1, minHeight: '46px' }}>Tiếp tục</button>
+                    </div>
+                </form>
+            )}
+
+            {withdrawStep === 2 && (
+                <form onSubmit={handleVerifyWithdrawPin}>
+                    <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: '0 0 20px', lineHeight: 1.5 }}>
+                        Để xác nhận rút số tiền <strong>{displayAmount}đ</strong> về tài khoản ngân hàng liên kết, vui lòng nhập mã PIN giao dịch của bạn.
+                    </p>
+
+                    {withdrawError && <div className="error-message" style={{ fontSize: '0.9rem', marginBottom: '16px' }}>{withdrawError}</div>}
+
+                    <FormInput
+                        label="Mã PIN giao dịch (6 số)" id="withdrawPin" type="password" placeholder="Nhập mã PIN giao dịch"
+                        value={withdrawPin} onChange={(e) => setWithdrawPin(e.target.value.replace(/\D/g, ''))}
+                        inputStyle={{ textAlign: 'center', letterSpacing: '8px', fontSize: '1.2rem' }} maxLength="6" required disabled={isWithdrawLoading}
+                    />
+
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+                        <button className="secondary-button" type="button" style={{ flex: 1, minHeight: '46px' }} onClick={() => setWithdrawStep(1)} disabled={isWithdrawLoading}>Quay lại</button>
+                        <button className="auth-btn" type="submit" style={{ flex: 1, minHeight: '46px' }} disabled={isWithdrawLoading}>Xác nhận</button>
+                    </div>
+                </form>
+            )}
+
+            {withdrawStep === 3 && (
+                <OtpVerification
+                    phone={userProfile?.phone} amount={displayAmount} action="rút" otp={withdrawOtp} setOtp={setWithdrawOtp}
+                    loading={isWithdrawLoading} countdown={withdrawCountdown} onSubmit={handleVerifyWithdrawOtp} onResend={handleResendWithdrawOtp}
+                    onCancel={handleClose} error={withdrawError} confirmText="Xác nhận rút"
+                />
+            )}
+        </Modal>
+    )
 }

@@ -9,11 +9,6 @@ function OverviewPanel({
                          monthlyIncome = 0,
                          prevMonthlyIncome = 0,
                          setModalType,
-                         setTopupStep,
-                         setWithdrawStep,
-                         setModalAmount,
-                         setTopupPin,
-                         setTopupError,
                          setActiveTab
                        }) {
 
@@ -62,14 +57,11 @@ function OverviewPanel({
           <div className="quick-actions-panel">
             <h3>Giao dịch nhanh</h3>
             <div className="actions-grid">
-              <button className="action-btn" onClick={() => {
-                setModalType('topup'); setTopupStep(1); setModalAmount(''); setTopupPin(''); setTopupError('');
-              }}>
+              {/* FIX LỖI TẠI ĐÂY: Rút gọn chỉ truyền setModalType duy nhất */}
+              <button className="action-btn" onClick={() => setModalType('topup')}>
                 <ArrowDownLeft size={22} weight="bold" /> Nạp tiền
               </button>
-              <button className="action-btn" onClick={() => {
-                setModalType('withdraw'); setWithdrawStep(1); setModalAmount(''); setTopupPin(''); setTopupError('');
-              }}>
+              <button className="action-btn" onClick={() => setModalType('withdraw')}>
                 <ArrowUpRight size={22} weight="bold" /> Rút tiền
               </button>
               <button className="action-btn" onClick={() => setActiveTab('transactions')}>
