@@ -66,24 +66,16 @@ export default function useTransactionFilter(transactions = []) { // Thêm defau
     const totalIn = useMemo(
         () =>
             filteredTransactions
-                .filter(
-                    tx =>
-                        tx.direction === "IN" &&
-                        tx.status === "SUCCESS"
-                )
-                .reduce((sum, tx) => sum + tx.amount, 0),
+                .filter(tx => tx.direction === "IN" && tx.status === "SUCCESS")
+                .reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0),
         [filteredTransactions]
     );
 
     const totalOut = useMemo(
         () =>
             filteredTransactions
-                .filter(
-                    tx =>
-                        tx.direction === "OUT" &&
-                        tx.status === "SUCCESS"
-                )
-                .reduce((sum, tx) => sum + tx.amount, 0),
+                .filter(tx => tx.direction === "OUT" && tx.status === "SUCCESS")
+                .reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0),
         [filteredTransactions]
     );
 

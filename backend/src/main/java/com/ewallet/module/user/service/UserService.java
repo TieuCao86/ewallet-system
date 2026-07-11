@@ -1,6 +1,9 @@
 package com.ewallet.module.user.service;
 
 import com.ewallet.common.exception.*;
+import com.ewallet.common.exception.core.UserNotFoundException;
+import com.ewallet.common.exception.security.InvalidCredentialsException;
+import com.ewallet.common.exception.security.InvalidPinException;
 import com.ewallet.module.user.dto.*;
 import com.ewallet.module.user.entity.User;
 import com.ewallet.module.kyc.enums.KycStatus;
@@ -28,10 +31,10 @@ public class UserService {
     @Transactional
     public UserProfileResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new BusinessException("Email is already registered");
+            throw new BusinessException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
         if (userRepository.existsByPhone(request.getPhone())) {
-            throw new BusinessException("Phone number is already registered");
+            throw new BusinessException(ErrorCode.PHONE_ALREADY_EXISTS);
         }
 
         User user = User.builder()
@@ -53,7 +56,7 @@ public class UserService {
     @Transactional(readOnly = true)
     public UserProfileResponse getProfile(String email) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException(email));
         KycStatus status = kycService.getKycStatus(user.getId());
 
         return userMapper.toProfile(user, status);
@@ -62,7 +65,7 @@ public class UserService {
     @Transactional
     public UserProfileResponse updateProfile(String email, UpdateProfileRequest request) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException(email));
 
         user.setFullName(request.getFullName());
 
@@ -72,16 +75,16 @@ public class UserService {
     @Transactional
     public void changePassword(String email, ChangePasswordRequest request) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException(email));
 
         if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
-            throw new InvalidCredentialsException("Old password is incorrect");
+            throw new InvalidCredentialsException();
         }
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
-            throw new InvalidCredentialsException("Password confirmation does not match");
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Mật khẩu xác nhận không khớp");
         }
         if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
-            throw new InvalidCredentialsException("New password must be different from old password");
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Mật khẩu mới không được trùng với mật khẩu cũ");
         }
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
@@ -90,13 +93,14 @@ public class UserService {
     @Transactional
     public void createPin(String email, CreatePinRequest request) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException(email));
 
         if (user.getPin() != null) {
-            throw new IllegalStateException("PIN already exists");
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Tài khoản này đã được thiết lập mã PIN",
+                    "User " + email + " cố gắng khởi tạo lại mã PIN khi đã tồn tại.");
         }
         if (!request.getPin().equals(request.getConfirmPin())) {
-            throw new IllegalArgumentException("PIN confirmation does not match");
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Mã PIN xác nhận không khớp");
         }
 
         user.setPin(passwordEncoder.encode(request.getPin()));
@@ -105,13 +109,13 @@ public class UserService {
     @Transactional
     public void changePin(String email, ChangePinRequest request) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException(email));
 
         if (!passwordEncoder.matches(request.getOldPin(), user.getPin())) {
-            throw new IllegalArgumentException("Old PIN is incorrect");
+            throw new InvalidPinException("User " + email + " nhập sai mã PIN cũ khi thực hiện đổi PIN.");
         }
         if (!request.getNewPin().equals(request.getConfirmPin())) {
-            throw new IllegalArgumentException("PIN confirmation does not match");
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Mã PIN xác nhận không khớp");
         }
 
         user.setPin(passwordEncoder.encode(request.getNewPin()));
@@ -120,27 +124,27 @@ public class UserService {
     @Transactional(readOnly = true)
     public User getById(Long userId) {
         return userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException(userId));
     }
 
     @Transactional(readOnly = true)
     public User getByEmail(String email) {
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new NotFoundException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException(email));
     }
 
     @Transactional(readOnly = true)
     public User getByPhone(String phone) {
         return userRepository.findByPhone(phone)
-                .orElseThrow(() -> new NotFoundException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException(phone));
     }
 
     public void validatePin(User user, String rawPin) {
         if (user.getPin() == null) {
-            throw new InvalidPinException("Please create transaction PIN first");
+            throw new InvalidPinException("User " + user.getEmail() + " chưa thiết lập mã PIN giao dịch.");
         }
         if (!passwordEncoder.matches(rawPin, user.getPin())) {
-            throw new InvalidPinException("Invalid transaction PIN");
+            throw new InvalidPinException("User " + user.getEmail() + " xác thực mã PIN thất bại.");
         }
     }
 

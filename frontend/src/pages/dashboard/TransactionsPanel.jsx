@@ -12,48 +12,47 @@ function TransactionsPanel({
                                transferNote,
                                setTransferNote,
                                transferLoading,
-                               wallet,
-                               limitPerTransaction,
-                               limitPerDay,
+                               wallet, // Có thể bị undefined ở lần render đầu tiên
+                               limitPerTransaction = 50000000,
+                               limitPerDay = 100000000,
 
-                               transactions,          // Mảng allTransactions đã flatMap từ Component cha
-                               filter,                // Kết quả trả về từ hook useTransactionFilter
-                               isLoading,             // State load lần đầu từ React Query
-                               isFetchingNextPage,    // State đang load trang tiếp theo từ React Query
+                               transactions,
+                               filter,
+                               isLoading,
+                               isFetchingNextPage,
 
                                formatCurrency,
                                formatNumberWithCommas,
                                handleExportCSV,
 
-                               hasMore,               // Tương ứng với hasNextPage
-                               onLoadMore             // Tương ứng với fetchNextPage
+                               hasMore,
+                               onLoadMore
                            }) {
 
-    // Đồng bộ hóa object filter: Tạo một object filter tổng hợp và hàm setFilter giả lập
-    // để khớp hoàn toàn với cấu trúc mong đợi của TransactionHistoryTable mới.
+    // Đồng bộ hóa object filter
     const unifiedFilter = {
-        filteredTransactions: filter.filteredTransactions,
-        search: filter.filterSearch,
-        date: filter.filterDate,
-        type: filter.filterType,
-        status: filter.filterStatus
+        filteredTransactions: filter?.filteredTransactions || [],
+        search: filter?.filterSearch || "",
+        date: filter?.filterDate || "ALL",
+        type: filter?.filterType || "ALL",
+        status: filter?.filterStatus || "ALL"
     };
 
     const setFilter = (updateFn) => {
-        // Giả lập cơ chế cập nhật state từ functional update (prev => ({...prev, key: value}))
         const mockPrev = {
-            search: filter.filterSearch,
-            date: filter.filterDate,
-            type: filter.filterType,
-            status: filter.filterStatus
+            search: filter?.filterSearch || "",
+            date: filter?.filterDate || "ALL",
+            type: filter?.filterType || "ALL",
+            status: filter?.filterStatus || "ALL"
         };
         const nextState = updateFn(mockPrev);
 
-        // Kích hoạt ngược lại các hàm set rời rạc của hook useTransactionFilter
-        if (nextState.search !== mockPrev.search) filter.setFilterSearch(nextState.search);
-        if (nextState.date !== mockPrev.date) filter.setFilterDate(nextState.date);
-        if (nextState.type !== mockPrev.type) filter.setFilterType(nextState.type);
-        if (nextState.status !== mockPrev.status) filter.setFilterStatus(nextState.status);
+        if (filter) {
+            if (nextState.search !== mockPrev.search) filter.setFilterSearch(nextState.search);
+            if (nextState.date !== mockPrev.date) filter.setFilterDate(nextState.date);
+            if (nextState.type !== mockPrev.type) filter.setFilterType(nextState.type);
+            if (nextState.status !== mockPrev.status) filter.setFilterStatus(nextState.status);
+        }
     };
 
     return (
@@ -63,8 +62,9 @@ function TransactionsPanel({
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
                         <h3 style={{ margin: 0 }}>Chuyển tiền nhanh</h3>
                         <span style={{ fontSize: '0.88rem', color: 'var(--muted)', fontWeight: 550 }}>
-                Số dư khả dụng: <strong style={{ color: 'var(--accent)' }}>{wallet.balance.toLocaleString()}đ</strong>
-              </span>
+                            {/* FIX LỖI TẠI ĐÂY: Thêm toán tử an toàn để không bị crash khi dữ liệu đang load */}
+                            Số dư khả dụng: <strong style={{ color: 'var(--accent)' }}>{(wallet?.balance || 0).toLocaleString()}đ</strong>
+                        </span>
                     </div>
                     <form className="auth-form" onSubmit={handleTransfer}>
                         {transferError && <div className="error-message" style={{ fontSize: '0.9rem' }}><Warning size={16} /> {transferError}</div>}
@@ -119,11 +119,11 @@ function TransactionsPanel({
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.9rem' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
                                 <span>Hạn mức tối đa/giao dịch:</span>
-                                <strong>{limitPerTransaction.toLocaleString()}đ</strong>
+                                <strong>{(limitPerTransaction || 0).toLocaleString()}đ</strong>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
                                 <span>Hạn mức tối đa/ngày:</span>
-                                <strong>{limitPerDay.toLocaleString()}đ</strong>
+                                <strong>{(limitPerDay || 0).toLocaleString()}đ</strong>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                 <span>Phí chuyển tiền nội bộ:</span>
@@ -134,7 +134,6 @@ function TransactionsPanel({
                 </div>
             </div>
 
-            {/* Truyền cấu trúc filter đồng bộ xuống Table thành phần */}
             <TransactionHistoryTable
                 transactions={unifiedFilter.filteredTransactions}
                 filter={unifiedFilter}

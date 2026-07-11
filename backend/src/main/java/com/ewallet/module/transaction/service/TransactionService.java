@@ -1,9 +1,14 @@
 package com.ewallet.module.transaction.service;
 
-import com.ewallet.common.exception.InsufficientBalanceException;
-import com.ewallet.common.exception.NotFoundException;
+import com.ewallet.common.exception.BusinessException;
+import com.ewallet.common.exception.ErrorCode;
+import com.ewallet.common.exception.core.UserNotFoundException;
+import com.ewallet.common.exception.core.WalletNotFoundException;
+import com.ewallet.common.exception.security.InsufficientBalanceException;
 import com.ewallet.module.bank.entity.BankAccount;
 import com.ewallet.module.kyc.service.KycService;
+import com.ewallet.module.otp.enums.OtpType;
+import com.ewallet.module.otp.service.OtpService;
 import com.ewallet.module.transaction.dto.TransactionResponse;
 import com.ewallet.module.transaction.dto.TransferRequest;
 import com.ewallet.module.transaction.dto.TransferResponse;
@@ -40,24 +45,54 @@ public class TransactionService {
 
     private final UserService userService;
     private final KycService kycService;
+    private final OtpService otpService;
+
     private final TransactionCodeGenerator transactionCodeGenerator;
     private final TransactionMapper transactionMapper;
 
-    @Transactional
-    public TransferResponse transfer(Long senderId, TransferRequest request) {
-        // Gọi qua UserService dùng chung
+    @Transactional(readOnly = true)
+    public void initiateTransfer(Long senderId, TransferRequest request) {
         User sender = userService.getById(senderId);
 
+        // 1. Kiểm tra điều kiện tài khoản và mã PIN giao dịch
         kycService.validateKycApproval(sender.getId());
         userService.validatePin(sender, request.getPin());
 
+        // 2. Kiểm tra tài khoản nhận
         User receiver = userRepository.findByPhone(request.getReceiverPhone())
-                .orElseThrow(() -> new NotFoundException("Người nhận không tồn tại trên hệ thống."));
+                .orElseThrow(() -> new UserNotFoundException(request.getReceiverPhone()));
 
         if (sender.getId().equals(receiver.getId())) {
-            throw new IllegalArgumentException("Không thể chuyển tiền cho chính bản thân.");
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR,
+                    "Không thể chuyển tiền cho chính bản thân.",
+                    String.format("User ID %d cố gắng tự chuyển tiền cho chính mình.", senderId));
         }
 
+        // 3. Kiểm tra số dư hiện tại của ví (chỉ đọc)
+        Wallet senderWallet = walletRepository.findWalletByUserId(senderId)
+                .orElseThrow(() -> new WalletNotFoundException(senderId));
+
+        if (senderWallet.getBalance().compareTo(request.getAmount()) < 0) {
+            throw new InsufficientBalanceException(senderWallet.getBalance(), request.getAmount());
+        }
+
+        // 4. Mọi thông tin hợp lệ -> Kích hoạt gửi mã OTP giao dịch chuyển tiền
+        otpService.sendOtp(senderId, OtpType.TRANSFER);
+    }
+
+    /**
+     * BƯỚC 2: Xác thực mã OTP và hoàn tất trừ/cộng tiền
+     */
+    @Transactional
+    public TransferResponse confirmTransfer(Long senderId, TransferRequest request, String otp) {
+        // 1. Gọi OtpService đối chiếu OTP. Nội bộ hàm này nên throw InvalidOtpException thay vì BadRequestException
+        otpService.verifyOtp(senderId, otp, OtpType.TRANSFER);
+
+        User sender = userService.getById(senderId);
+        User receiver = userRepository.findByPhone(request.getReceiverPhone())
+                .orElseThrow(() -> new UserNotFoundException(request.getReceiverPhone()));
+
+        // Khóa dòng dữ liệu để tránh race-condition (Đảm bảo an toàn đa luồng)
         Wallet senderWallet;
         Wallet receiverWallet;
         if (sender.getId() < receiver.getId()) {
@@ -68,16 +103,19 @@ public class TransactionService {
             senderWallet = getWalletForUpdate(sender.getId());
         }
 
+        // Re-check lại số dư tại thời điểm ghi dữ liệu thực tế đề phòng luồng song song bypass bước 1
         if (senderWallet.getBalance().compareTo(request.getAmount()) < 0) {
-            throw new InsufficientBalanceException("Số dư khả dụng trong ví không đủ.");
+            throw new InsufficientBalanceException(senderWallet.getBalance(), request.getAmount());
         }
 
+        // Khấu trừ & cộng số dư tài khoản giao dịch
         senderWallet.setBalance(senderWallet.getBalance().subtract(request.getAmount()));
         receiverWallet.setBalance(receiverWallet.getBalance().add(request.getAmount()));
 
         walletRepository.save(senderWallet);
         walletRepository.save(receiverWallet);
 
+        // Tạo hóa đơn giao dịch thành công vào database
         Transaction savedTransaction = createTransferTransaction(
                 sender,
                 receiver,
@@ -119,6 +157,8 @@ public class TransactionService {
 
         return Transaction.builder()
                 .transactionCode(transactionCodeGenerator.generate())
+                .senderName(bankAccount.getBank().getName())
+                .senderPhone(bankAccount.getAccountNumber())
                 .receiverUserId(user.getId())
                 .receiverName(user.getFullName())
                 .receiverPhone(user.getPhone())
@@ -142,6 +182,8 @@ public class TransactionService {
                 .senderUserId(user.getId())
                 .senderName(user.getFullName())
                 .senderPhone(user.getPhone())
+                .receiverName(bankAccount.getBank().getName())
+                .receiverPhone(bankAccount.getAccountNumber())
                 .bankId(bankAccount.getBank().getId())
                 .bankAccountId(bankAccount.getId())
                 .bankNameSnapshot(bankAccount.getBank().getName())
@@ -154,7 +196,7 @@ public class TransactionService {
                 .build();
     }
 
-    // 3. PRIVATE HELPER METHODS (Hàm bổ trợ logic nội bộ)
+    // PRIVATE HELPER METHODS
 
     private Transaction createTransferTransaction(User sender, User receiver, BigDecimal amount, String description) {
         Transaction transaction = Transaction.builder()
@@ -207,6 +249,6 @@ public class TransactionService {
 
     private Wallet getWalletForUpdate(Long userId) {
         return walletRepository.findByUserIdForUpdate(userId)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy ví của người dùng: " + userId));
+                .orElseThrow(() -> new WalletNotFoundException(userId));
     }
 }

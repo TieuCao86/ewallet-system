@@ -20,8 +20,8 @@ public class UserController {
 
     @GetMapping("/profile")
     public ApiResponse<UserProfileResponse> getProfile(@AuthenticationPrincipal UserPrincipal userPrincipal) {
-        String email = userPrincipal.getUser().getEmail();
-        return ApiResponse.success("Profile retrieved successfully", userService.getProfile(email));
+        String email = userPrincipal.getUsername();
+        return ApiResponse.success("Lấy thông tin tài khoản thành công", userService.getProfile(email));
     }
 
     @PutMapping("/profile")
@@ -29,19 +29,18 @@ public class UserController {
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @Valid @RequestBody UpdateProfileRequest request
     ) {
-        String email = userPrincipal.getUser().getEmail();
-        return ApiResponse.success("Profile updated successfully", userService.updateProfile(email, request));
+        String email = userPrincipal.getUsername();
+        return ApiResponse.success("Cập nhật thông tin tài khoản thành công", userService.updateProfile(email, request));
     }
-
 
     @PostMapping("/pin")
     public ApiResponse<Void> createPin(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @Valid @RequestBody CreatePinRequest request
     ) {
-        String email = userPrincipal.getUser().getEmail();
+        String email = userPrincipal.getUsername();
         userService.createPin(email, request);
-        return ApiResponse.success("PIN created successfully");
+        return ApiResponse.success("Tạo mã PIN giao dịch thành công");
     }
 
     @PutMapping("/pin")
@@ -49,9 +48,9 @@ public class UserController {
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @Valid @RequestBody ChangePinRequest request
     ) {
-        String email = userPrincipal.getUser().getEmail();
+        String email = userPrincipal.getUsername();
         userService.changePin(email, request);
-        return ApiResponse.success("PIN changed successfully");
+        return ApiResponse.success("Thay đổi mã PIN giao dịch thành công");
     }
 
     @PutMapping("/password")
@@ -59,8 +58,8 @@ public class UserController {
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @Valid @RequestBody ChangePasswordRequest request
     ) {
-        String email = userPrincipal.getUser().getEmail();
+        String email = userPrincipal.getUsername();
         userService.changePassword(email, request);
-        return ApiResponse.success("Password changed successfully");
+        return ApiResponse.success("Thay đổi mật khẩu thành công");
     }
 }

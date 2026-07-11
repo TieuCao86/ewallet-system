@@ -29,9 +29,10 @@ public class TransactionController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
+        // Ưu tiên lấy trực tiếp ID phẳng từ Principal token context
         Long userId = userPrincipal.getUser().getId();
         return ApiResponse.success(
-                "Transactions retrieved successfully",
+                "Lấy danh sách giao dịch thành công",
                 transactionService.getTransactions(userId, page, size)
         );
     }
@@ -40,20 +41,35 @@ public class TransactionController {
     public ApiResponse<List<TransactionResponse>> getHistory(@AuthenticationPrincipal UserPrincipal userPrincipal) {
         Long userId = userPrincipal.getUser().getId();
         return ApiResponse.success(
-                "Transaction history retrieved successfully",
+                "Lấy lịch sử giao dịch thành công",
                 transactionService.getHistory(userId)
         );
     }
 
-    @PostMapping("/transfer")
-    public ApiResponse<TransferResponse> transfer(
+    /**
+     * BƯỚC 1: Khởi tạo giao dịch chuyển tiền & Gửi OTP
+     */
+    @PostMapping("/transfer/initiate")
+    public ApiResponse<Void> initiateTransfer(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @Valid @RequestBody TransferRequest request
     ) {
         Long senderId = userPrincipal.getUser().getId();
-        return ApiResponse.success(
-                "Transfer completed successfully",
-                transactionService.transfer(senderId, request)
-        );
+        transactionService.initiateTransfer(senderId, request);
+        return ApiResponse.success("Mã xác thực OTP đã được gửi đến số điện thoại của bạn.");
+    }
+
+    /**
+     * BƯỚC 2: Xác thực OTP & Hoàn tất giao dịch chuyển tiền
+     */
+    @PostMapping("/transfer/confirm")
+    public ApiResponse<TransferResponse> confirmTransfer(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @Valid @RequestBody TransferRequest request,
+            @RequestParam String otp
+    ) {
+        Long senderId = userPrincipal.getUser().getId();
+        TransferResponse response = transactionService.confirmTransfer(senderId, request, otp);
+        return ApiResponse.success("Giao dịch chuyển tiền thành công.", response);
     }
 }
