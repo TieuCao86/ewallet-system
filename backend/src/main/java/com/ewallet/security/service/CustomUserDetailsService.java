@@ -4,6 +4,7 @@ import com.ewallet.module.user.entity.User;
 import com.ewallet.module.user.repository.UserRepository;
 import com.ewallet.security.principal.UserPrincipal;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.userdetails.*;
 import org.springframework.stereotype.Service;
 
@@ -14,8 +15,10 @@ public class CustomUserDetailsService implements UserDetailsService {
     private final UserRepository userRepository;
 
     @Override
-    public UserDetails loadUserByUsername(String email)
-            throws UsernameNotFoundException {
+    @Cacheable(value = "user-details", key = "#email")
+    public UserDetails loadUserByUsername(String email) {
+
+        System.out.println("=== LOAD USER FROM DATABASE ===");
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() ->

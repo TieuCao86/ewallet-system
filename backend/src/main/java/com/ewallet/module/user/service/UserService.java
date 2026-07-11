@@ -14,6 +14,7 @@ import com.ewallet.module.user.repository.UserRepository;
 import com.ewallet.module.wallet.service.WalletService;
 import com.ewallet.module.kyc.service.KycService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -62,7 +63,14 @@ public class UserService {
         return userMapper.toProfile(user, status);
     }
 
+    @Transactional(readOnly = true)
+    public UserProfileResponse getProfile(User user) {
+        KycStatus status = kycService.getKycStatus(user.getId());
+        return userMapper.toProfile(user, status);
+    }
+
     @Transactional
+    @CacheEvict(value = "user-details", key = "#email")
     public UserProfileResponse updateProfile(String email, UpdateProfileRequest request) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException(email));
@@ -73,6 +81,7 @@ public class UserService {
     }
 
     @Transactional
+    @CacheEvict(value = "user-details", key = "#email")
     public void changePassword(String email, ChangePasswordRequest request) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException(email));
@@ -91,6 +100,7 @@ public class UserService {
     }
 
     @Transactional
+    @CacheEvict(value = "user-details", key = "#email")
     public void createPin(String email, CreatePinRequest request) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException(email));
@@ -107,6 +117,7 @@ public class UserService {
     }
 
     @Transactional
+    @CacheEvict(value = "user-details", key = "#email")
     public void changePin(String email, ChangePinRequest request) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException(email));

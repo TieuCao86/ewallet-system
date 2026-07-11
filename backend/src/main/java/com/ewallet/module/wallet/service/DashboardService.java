@@ -4,7 +4,6 @@ import com.ewallet.module.wallet.dto.DashboardResponse;
 import com.ewallet.module.kyc.service.KycService;
 import com.ewallet.module.transaction.repository.TransactionRepository;
 import com.ewallet.module.user.entity.User;
-import com.ewallet.module.user.service.UserService;
 import com.ewallet.module.wallet.entity.Wallet;
 import com.ewallet.module.wallet.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
@@ -15,40 +14,54 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.YearMonth;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class DashboardService {
 
-    private final UserService userService;
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
     private final KycService kycService;
 
     @Transactional(readOnly = true)
-    public DashboardResponse getUserDashboard(Long userId) {
-        User user = userService.getById(userId);
+    public DashboardResponse getUserDashboard(User user) {
+        Long userId = user.getId();
+
+        // 1. Lấy thông tin Ví từ userId
         Wallet wallet = walletRepository.findWalletByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("Wallet not found"));
 
-        // 1. Tính toán mốc thời gian tháng này
+        // 2. Tính toán mốc thời gian tháng này
         YearMonth thisMonth = YearMonth.now();
         LocalDateTime startOfThisMonth = thisMonth.atDay(1).atStartOfDay();
         LocalDateTime endOfThisMonth = thisMonth.atEndOfMonth().atTime(LocalTime.MAX);
 
-        // 2. Tính toán mốc thời gian tháng trước
+        // 3. Tính toán mốc thời gian tháng trước
         YearMonth prevMonth = thisMonth.minusMonths(1);
         LocalDateTime startOfPrevMonth = prevMonth.atDay(1).atStartOfDay();
         LocalDateTime endOfPrevMonth = prevMonth.atEndOfMonth().atTime(LocalTime.MAX);
 
-        // 3. Query tính tổng tiền từ Repository (Tận dụng các hàm có sẵn của bạn)
-        BigDecimal monthExpense = transactionRepository.sumExpenseByUserIdAndPeriod(userId, startOfThisMonth, endOfThisMonth);
-        BigDecimal monthIncome = transactionRepository.sumIncomeByUserIdAndPeriod(userId, startOfThisMonth, endOfThisMonth);
+        // 4. Thực hiện gom toàn bộ 4 phép tính SUM tài chính vào đúng 1 câu query
+        List<Object[]> resultList = transactionRepository.getDashboardFinancials(
+                userId, startOfThisMonth, endOfThisMonth, startOfPrevMonth, endOfPrevMonth
+        );
 
-        BigDecimal prevMonthExpense = transactionRepository.sumExpenseByUserIdAndPeriod(userId, startOfPrevMonth, endOfPrevMonth);
-        BigDecimal prevMonthIncome = transactionRepository.sumIncomeByUserIdAndPeriod(userId, startOfPrevMonth, endOfPrevMonth);
+        BigDecimal monthExpense = BigDecimal.ZERO;
+        BigDecimal monthIncome = BigDecimal.ZERO;
+        BigDecimal prevMonthExpense = BigDecimal.ZERO;
+        BigDecimal prevMonthIncome = BigDecimal.ZERO;
 
-        // 4. Đóng gói DTO tổng hợp
+        // Bóc tách mảng Object để gán giá trị an toàn
+        if (resultList != null && !resultList.isEmpty()) {
+            Object[] row = resultList.get(0);
+            monthExpense = (BigDecimal) row[0];
+            monthIncome = (BigDecimal) row[1];
+            prevMonthExpense = (BigDecimal) row[2];
+            prevMonthIncome = (BigDecimal) row[3];
+        }
+
+        // 5. Đóng gói DTO tổng hợp và trả về
         return DashboardResponse.builder()
                 .fullName(user.getFullName())
                 .email(user.getEmail())

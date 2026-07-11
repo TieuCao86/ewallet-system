@@ -1,17 +1,17 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
-import axios from 'axios'
+import { useState, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Gear } from '@phosphor-icons/react'
 import { useQueryClient } from '@tanstack/react-query'
 
 // API & Custom Hooks
 import transactionApi from '../api/transactionApi'
-import useFetchWalletData from '../hooks/useFetchWalletData'
+import { useDashboardQuery } from '../hooks/useDashboardQuery'
 import useCountdown from '../hooks/useCountdown'
 import useKeyboardShortcuts from '../hooks/useKeyboardShortcuts'
 import useTransactionFilter from "../hooks/useTransactionFilter"
 import useExportCSV from "../hooks/useExportCSV"
 import { useTransactionsQuery } from '../hooks/useTransactionsQuery'
+import { useBankQuery } from "../hooks/useBankQuery.js"
 
 // Components & Panels
 import Sidebar from '../components/Sidebar'
@@ -41,9 +41,28 @@ function Dashboard() {
 
     const queryClient = useQueryClient();
 
-    // 1. Dữ liệu Core
-    const { userProfile, wallet, loading: isCoreLoading, isLive, refresh } = useFetchWalletData()
-    const { data: txPageData, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading: isTxLoading } = useTransactionsQuery();
+    // 1. TIÊU THỤ DỮ LIỆU TỪ REACT QUERY
+    const { data: dashboardCore, isLoading: isCoreLoading } = useDashboardQuery();
+    const userProfile = dashboardCore?.userProfile || null;
+    const wallet = dashboardCore?.wallet || null;
+    const isLive = !!dashboardCore;
+
+    // Cơ chế Lazy Query tải danh mục ngân hàng thông minh
+    const needBankData = activeTab === 'bank' || modalType === 'topup' || modalType === 'withdraw';
+    const { data: bankData } = useBankQuery(needBankData);
+
+    const linkedBanks = bankData?.linkedBanks || [];
+    const banks = bankData?.banks || [];
+
+    // Tải trang lịch sử giao dịch (Infinite Scroll)
+    const needTransactions = activeTab === "transactions" || activeTab === "history";
+    const {
+        data: txPageData,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+        isLoading: isTxLoading
+    } = useTransactionsQuery(needTransactions);
 
     const transactions = useMemo(() => {
         return txPageData ? txPageData.pages.flatMap(page => page.data) : [];
@@ -55,18 +74,23 @@ function Dashboard() {
 
     useKeyboardShortcuts(setActiveTab)
 
-    // 2. Global Success Handler (Dùng chung cho Nạp, Rút, Chuyển)
+    // 2. GLOBAL SUCCESS HANDLER
     const handleTransactionSuccess = useCallback((message) => {
         setModalType(null)
         setToast({ show: true, message, type: 'success' })
         setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000)
-        queryClient.invalidateQueries({ queryKey: ["transactions"] });
-        refresh()
-    }, [queryClient, refresh])
 
-    // ==========================================
+        // Làm mới danh sách lịch sử giao dịch ngầm
+        if (activeTab === "transactions" || activeTab === "history") {
+            queryClient.invalidateQueries({ queryKey: ["transactions"] });
+        } else {
+            queryClient.resetQueries({ queryKey: ["transactions"], exact: true });
+        }
+
+        queryClient.invalidateQueries({ queryKey: ["dashboard-core"] });
+    }, [queryClient, activeTab])
+
     // 3. LUỒNG CHUYỂN TIỀN (TRANSFER)
-    // ==========================================
     const [transferCountdown, startTransferCountdown] = useCountdown(0)
     const [transferPhone, setTransferPhone] = useState('')
     const [transferAmount, setTransferAmount] = useState('')
@@ -95,7 +119,6 @@ function Dashboard() {
         setTransferConfirmError('')
     }, [transferPhone, transferAmount, wallet?.balance])
 
-    // Bước 1: Khởi tạo gửi OTP
     const handleConfirmTransfer = useCallback(async (e) => {
         e.preventDefault()
         setTransferConfirmError('')
@@ -117,7 +140,6 @@ function Dashboard() {
         } finally { setIsTransferConfirmLoading(false) }
     }, [transferAmount, transferPhone, transferNote, transferPin, startTransferCountdown])
 
-    // Bước 2: Xác nhận OTP
     const handleVerifyTransferOtp = useCallback(async (e) => {
         e.preventDefault()
         setTransferConfirmError('')
@@ -152,12 +174,7 @@ function Dashboard() {
         } catch (err) { setTransferConfirmError('Không thể gửi lại mã OTP lúc này.') }
     }, [transferAmount, transferPhone, transferNote, transferPin, startTransferCountdown])
 
-
-    // ==========================================
-    // 4. LUỒNG DỮ LIỆU KHÁC (Banks, Kyc, Profile)
-    // ==========================================
-    const [linkedBanks, setLinkedBanks] = useState([])
-    const [banks, setBanks] = useState([])
+    // 4. LUỒNG FORM VÀ STATE GIAO DIỆN PHỤ
     const [selectedBank, setSelectedBank] = useState(null)
     const [bankAccountNo, setBankAccountNo] = useState('')
     const [bankPhone, setBankPhone] = useState('')
@@ -171,36 +188,18 @@ function Dashboard() {
     const [devices] = useState([{ id: 1, name: 'Chrome - Windows', type: 'desktop', lastLogin: '2026-06-25' }])
     const [loginHistory] = useState([{ ip: '14.161.42.105', device: 'Chrome - Windows', time: '2026-06-25', status: 'Thành công' }])
 
-    useEffect(() => {
-        let isMounted = true
-        const initDashboardBankData = async () => {
-            try {
-                const [masterRes, linkedRes] = await Promise.all([
-                    axios.get('http://localhost:8080/api/banks/master', { withCredentials: true }),
-                    axios.get('http://localhost:8080/api/banks', { withCredentials: true })
-                ])
-                if (isMounted) {
-                    if (masterRes.data?.success) setBanks(masterRes.data.data)
-                    if (linkedRes.data?.success && Array.isArray(linkedRes.data.data)) setLinkedBanks(linkedRes.data.data)
-                }
-            } catch (err) { console.error('Lỗi tải Bank:', err) }
-        }
-        initDashboardBankData()
-        return () => { isMounted = false }
-    }, [])
-
     const formatCurrency = useCallback((val) => {
         return Math.abs(val).toLocaleString() + (wallet?.currency || 'đ')
     }, [wallet?.currency])
 
     const handleLogout = useCallback(() => {
         localStorage.clear()
+        queryClient.clear()
         navigate('/login')
-    }, [navigate])
-
+    }, [navigate, queryClient])
 
     // ==========================================
-    // 5. RENDER CHÍNH
+    // 5. RENDER PANEL QUA USEMEMO
     // ==========================================
     const renderedPanel = useMemo(() => {
         switch (activeTab) {
@@ -306,7 +305,7 @@ function Dashboard() {
                 </div>
             </main>
 
-            {/* Modals Layer Tự Quản Lý */}
+            {/* Modals Layer */}
             <TopupModal
                 isOpen={modalType === 'topup'}
                 onClose={() => setModalType(null)}

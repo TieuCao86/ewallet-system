@@ -2,6 +2,7 @@ package com.ewallet.module.user.controller;
 
 import com.ewallet.common.dto.ApiResponse;
 import com.ewallet.module.user.dto.*;
+import com.ewallet.module.user.entity.User;
 import com.ewallet.module.user.service.UserService;
 import com.ewallet.security.principal.UserPrincipal;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -20,8 +21,8 @@ public class UserController {
 
     @GetMapping("/profile")
     public ApiResponse<UserProfileResponse> getProfile(@AuthenticationPrincipal UserPrincipal userPrincipal) {
-        String email = userPrincipal.getUsername();
-        return ApiResponse.success("Lấy thông tin tài khoản thành công", userService.getProfile(email));
+        User currentUser = userPrincipal.getUser();
+        return ApiResponse.success("Lấy thông tin tài khoản thành công", userService.getProfile(currentUser));
     }
 
     @PutMapping("/profile")
@@ -29,8 +30,9 @@ public class UserController {
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @Valid @RequestBody UpdateProfileRequest request
     ) {
-        String email = userPrincipal.getUsername();
-        return ApiResponse.success("Cập nhật thông tin tài khoản thành công", userService.updateProfile(email, request));
+        User currentUser = userPrincipal.getUser();
+        return ApiResponse.success("Cập nhật thông tin tài khoản thành công",
+                userService.updateProfile(currentUser.getEmail(), request));
     }
 
     @PostMapping("/pin")

@@ -1,6 +1,7 @@
 package com.ewallet.module.wallet.controller;
 
 import com.ewallet.common.dto.ApiResponse;
+import com.ewallet.module.user.entity.User;
 import com.ewallet.module.wallet.dto.DashboardResponse;
 import com.ewallet.module.wallet.service.DashboardService;
 import com.ewallet.security.principal.UserPrincipal;
@@ -21,7 +22,7 @@ public class DashboardController {
 
     @GetMapping
     public ApiResponse<DashboardResponse> getDashboard(@AuthenticationPrincipal UserPrincipal userPrincipal) {
-        Long userId = userPrincipal.getUser().getId();
-        return ApiResponse.success("Dashboard data retrieved successfully", dashboardService.getUserDashboard(userId));
+        User currentUser = userPrincipal.getUser();
+        return ApiResponse.success("Dashboard data retrieved successfully", dashboardService.getUserDashboard(currentUser));
     }
 }
