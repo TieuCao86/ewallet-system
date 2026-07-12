@@ -9,6 +9,13 @@
   --muted: #64748b;
   --line: #dbe6f2;
   --danger: #ef4444;
+  --bg-card: rgba(255, 255, 255, 0.7); /* Thẻ trong suốt mờ nhẹ */
+  --line-card: rgba(255, 255, 255, 0.4);
+  --shadow-smooth: 0 8px 32px 0 rgba(31, 135, 135, 0.06); /* Đổ bóng mịn */
+  --accent-cyan: #0d8ca6; /* Màu xanh ngọc của các nút chức năng nhanh */
+  --accent-blue: #006aff;
+  --ink-main: #07172f;
+  --muted-main: #475569;
   --danger-soft: rgba(239, 68, 68, 0.08);
   --accent: #006aff;
   --accent-soft: rgba(0, 106, 255, 0.1);

@@ -7,7 +7,6 @@ function Sidebar({ activeTab, setActiveTab, onLogout }) {
       <div>
         <div className="sidebar-brand">
           <img src="/VTPayLogo-Transparent.png" alt="VT Pay Logo" />
-          <span>VT Pay</span>
         </div>
 
         <nav className="sidebar-menu">

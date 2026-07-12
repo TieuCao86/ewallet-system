@@ -31,53 +31,73 @@ function OverviewPanel({
       <div className="tab-panel">
         <div className="wallet-overview-grid">
           <div className="wallet-card">
-            <div className="wallet-card-header">
+            <div className="wallet-card-top">
               <span className="wallet-label">Số dư khả dụng</span>
-              <div className="wallet-id">
-                <span>ID: {wallet?.walletId || '---'}</span>
+              <div className="wallet-balance">
+                <h2>{(wallet?.balance || 0).toLocaleString()}đ</h2>
               </div>
             </div>
-            <div className="wallet-balance">
-              <h2>{(wallet?.balance || 0).toLocaleString()}đ</h2>
-            </div>
-            <div className="wallet-card-footer">
-              <div>
-                <span style={{ fontSize: '0.78rem', display: 'block', opacity: 0.8, marginBottom: '2px' }}>Đăng nhập gần nhất</span>
-                <strong>{wallet?.lastLogin || 'Vừa xong'}</strong>
-              </div>
-              <div className={`wallet-kyc ${userProfile?.kycStatus === 'APPROVED' ? 'verified' : (userProfile?.kycStatus === 'PENDING' ? 'pending' : 'rejected')}`}>
-                {userProfile?.kycStatus === 'APPROVED' && 'Đã xác thực KYC'}
-                {userProfile?.kycStatus === 'PENDING' && 'KYC Đang duyệt'}
-                {userProfile?.kycStatus === 'REJECTED' && 'KYC Bị Từ Chối'}
-                {!userProfile?.kycStatus && 'Chưa xác thực'}
-              </div>
+
+            <div className="wallet-id-pill">
+              <span>ID: {wallet?.walletId || '---'}</span>
             </div>
           </div>
 
           <div className="quick-actions-panel">
             <h3>Giao dịch nhanh</h3>
             <div className="actions-grid">
-              {/* FIX LỖI TẠI ĐÂY: Rút gọn chỉ truyền setModalType duy nhất */}
-              <button className="action-btn" onClick={() => setModalType('topup')}>
-                <ArrowDownLeft size={22} weight="bold" /> Nạp tiền
-              </button>
-              <button className="action-btn" onClick={() => setModalType('withdraw')}>
-                <ArrowUpRight size={22} weight="bold" /> Rút tiền
-              </button>
-              <button className="action-btn" onClick={() => setActiveTab('transactions')}>
-                <ArrowsLeftRight size={22} weight="bold" /> Chuyển tiền
-              </button>
-              <button className="action-btn" onClick={() => setModalType('qrscanner')}>
-                <QrCode size={22} weight="bold" /> Quét QR
-              </button>
-              <button className="action-btn" onClick={() => setActiveTab('myqr')}>
-                <QrCode size={22} weight="bold" style={{ color: 'var(--accent)' }} /> QR của tôi
-              </button>
-              <button className="action-btn" onClick={() => setActiveTab('bank')}>
-                <Wallet size={22} weight="bold" /> Liên kết thẻ
-              </button>
+
+              {/* Nút 1 */}
+              <div className="action-item">
+                <button className="action-btn" onClick={() => setModalType('topup')}>
+                  <ArrowDownLeft size={24} weight="bold" />
+                </button>
+                <span className="action-label">Nạp tiền</span>
+              </div>
+
+              {/* Nút 2 */}
+              <div className="action-item">
+                <button className="action-btn" onClick={() => setModalType('withdraw')}>
+                  <ArrowUpRight size={24} weight="bold" />
+                </button>
+                <span className="action-label">Rút tiền</span>
+              </div>
+
+              {/* Nút 3 */}
+              <div className="action-item">
+                <button className="action-btn" onClick={() => setActiveTab('transactions')}>
+                  <ArrowsLeftRight size={24} weight="bold" />
+                </button>
+                <span className="action-label">Chuyển tiền</span>
+              </div>
+
+              {/* Nút 4 */}
+              <div className="action-item">
+                <button className="action-btn" onClick={() => setModalType('qrscanner')}>
+                  <QrCode size={24} weight="bold" />
+                </button>
+                <span className="action-label">Quét QR</span>
+              </div>
+
+              {/* Nút 5 */}
+              <div className="action-item">
+                <button className="action-btn" onClick={() => setActiveTab('myqr')}>
+                  <QrCode size={24} weight="bold" />
+                </button>
+                <span className="action-label">QR của tôi</span>
+              </div>
+
+              {/* Nút 6 */}
+              <div className="action-item">
+                <button className="action-btn" onClick={() => setActiveTab('bank')}>
+                  <Wallet size={24} weight="bold" />
+                </button>
+                <span className="action-label">Liên kết thẻ</span>
+              </div>
+
             </div>
           </div>
+
         </div>
 
         <div className="stats-grid">
