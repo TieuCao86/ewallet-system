@@ -1,0 +1,563 @@
+/* ==========================================================================
+   OVERVIEW PANEL STYLES (MÀN HÌNH TỔNG QUAN)
+   ========================================================================== */
+
+/* --- 1. Wallet Card & Layout Hàng Đầu --- */
+.wallet-overview-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    gap: 24px;
+    align-items: stretch;
+}
+
+.wallet-card {
+    position: relative;
+    border-radius: 28px;
+    padding: 28px;
+    background-image: url("/background-card4.png");
+    background-size: 100% 100%;
+    background-position: center;
+    background-repeat: no-repeat;
+    color: #ffffff;
+    overflow: hidden;
+    box-shadow: 0 15px 35px rgba(32, 114, 166, 0.15);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 230px;
+}
+
+.wallet-card-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    width: 100%;
+}
+
+.wallet-label {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.95);
+    display: block;
+    margin-bottom: 12px;
+}
+
+.wallet-balance h2 {
+    font-family: var(--font-display), sans-serif;
+    font-size: 3.2rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: #ffffff;
+    margin: 0;
+    letter-spacing: -0.5px;
+}
+
+.wallet-greeting-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.wallet-greeting-box span {
+    font-size: 0.8rem;
+    color: #ffffff;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.wallet-greeting-box strong {
+    font-weight: 700;
+}
+
+.wallet-card-bottom-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 20px;
+}
+
+.wallet-account-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.75);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding-left: 2px;
+}
+
+.wallet-id-pill {
+    background: rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    padding: 8px 18px;
+    border-radius: 12px;
+    width: fit-content;
+    display: flex;
+    align-items: center;
+}
+
+.wallet-id-pill span {
+    font-family: monospace;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #ffffff;
+    letter-spacing: 0.5px;
+}
+
+
+/* --- 2. Thao Tác Nhanh (Quick Actions) --- */
+.quick-actions-panel {
+    background: var(--bg-card);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 24px;
+    border: 1px solid var(--line-card);
+    box-shadow: var(--shadow-smooth);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.quick-actions-panel h3 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 16px;
+}
+
+.actions-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px 10px;
+}
+
+.action-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.action-btn {
+    width: 35%;
+    aspect-ratio: 1 / 1;
+    border-radius: 20px;
+    border: none;
+    cursor: pointer;
+    color: #ffffff;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(225deg, #0095f8 10%, #003ebe 90%);
+    box-shadow: 0 4px 12px rgba(32, 114, 166, 0.15);
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.action-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 18px rgba(32, 114, 166, 0.3);
+    background-image: none;
+    background-color: #0369a1;
+}
+
+.action-btn:active {
+    transform: translateY(0);
+}
+
+.action-btn svg {
+    color: #ffffff !important;
+}
+
+.action-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #07172f;
+    text-align: center;
+    white-space: nowrap;
+}
+
+
+/* --- 3. Thẻ Thống Kê (Stats Cards) --- */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+}
+
+.stat-card {
+    background: var(--bg-card);
+    border-radius: 20px;
+    border: 1px solid var(--line);
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(7, 23, 47, 0.03);
+}
+
+.stat-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+}
+
+.stat-icon.blue { background: rgba(0, 106, 255, 0.08); color: var(--accent); }
+.stat-icon.red { background: rgba(239, 68, 68, 0.08); color: #ef4444; }
+.stat-icon.green { background: rgba(34, 197, 94, 0.08); color: #22c55e; }
+.stat-icon.orange { background: rgba(249, 115, 22, 0.08); color: #f97316; }
+
+.stat-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.stat-info span {
+    font-size: 0.85rem;
+    color: var(--muted);
+    font-weight: 550;
+}
+
+.stat-info strong {
+    font-family: var(--font-display);
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--ink);
+}
+
+.trend-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-top: 2px;
+}
+.good-trend { color: #22c55e; }
+.bad-trend { color: #ef4444; }
+
+
+/* --- 4. Biểu Đồ & Khu Vực Đồ Thị Phía Dưới --- */
+.charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+
+.chart-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-card);
+    border: 1px solid var(--line);
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+}
+
+.chart-card h3 {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-bottom: 24px;
+}
+
+/* Donut Chart (Chi tiêu theo nhóm) */
+.donut-chart-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    gap: 20px;
+    padding: 10px 0;
+    flex-grow: 1;
+}
+
+.donut-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.88rem;
+    font-weight: 600;
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 4px;
+}
+
+.clickable-bar-group {
+    cursor: pointer;
+    transition: opacity 200ms ease, transform 150ms ease;
+}
+
+.clickable-bar-group:hover {
+    transform: translateY(-2px);
+}
+
+/* Các tháng không được active sẽ mờ nhẹ để tạo chiều sâu giao diện */
+.finance-bar-group:not(.active) {
+    opacity: 0.45;
+}
+
+.finance-bar-group.active {
+    opacity: 1;
+}
+
+/* Quản lý tài chính cá nhân (#1E424D) */
+.finance-management-card {
+    background: #0141af !important;
+    color: #ffffff;
+    border: 1px solid rgba(229, 213, 149, 0.15) !important;
+    box-shadow: 0 12px 30px rgba(30, 66, 77, 0.2);
+}
+
+.finance-management-card h3 {
+    color: #E5D595 !important;
+}
+
+.finance-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.detail-link-btn {
+    background: transparent;
+    border: none;
+    color: rgba(229, 213, 149, 0.8);
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    transition: color 150ms ease;
+}
+
+.detail-link-btn:hover {
+    color: #DDB248;
+}
+
+.finance-card-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: stretch;
+    gap: 20px;
+    flex-grow: 1;
+}
+
+.finance-summary-side {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    flex: 1.1;
+}
+
+.month-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 14px;
+}
+
+.toggle-visibility-icon {
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    transition: color 150ms ease;
+}
+
+.toggle-visibility-icon:hover { color: #ffffff; }
+
+.finance-stat-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.stat-legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-top: 6px;
+    flex-shrink: 0;
+}
+
+.income-dot { background-color: #10b981; }
+.expense-dot { background-color: #DDB248; }
+
+.stat-text-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 500;
+}
+
+.stat-amount {
+    font-size: 1.25rem;
+    font-weight: 700;
+    font-family: var(--font-display), monospace;
+    letter-spacing: -0.5px;
+}
+
+.update-timestamp {
+    font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.4);
+    font-weight: 500;
+    margin-top: auto;
+}
+
+.finance-chart-side {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex: 0.9;
+    height: 150px;
+    padding-bottom: 4px;
+}
+
+.finance-bar-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    width: 30%;
+    height: 100%;
+    justify-content: flex-end;
+}
+
+.single-bar {
+    width: 16px;
+    border-radius: 6px 6px 0 0;
+    transition: height 400ms ease;
+}
+
+.placeholder-bar {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.double-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    height: 80%;
+    width: 100%;
+    justify-content: center;
+}
+
+.bar {
+    width: 12px;
+    border-radius: 4px 4px 0 0;
+    transition: height 400ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.expense-bar {
+    background: linear-gradient(180deg, #DDB248 0%, rgba(221, 178, 72, 0.6) 100%);
+}
+
+.income-bar {
+    background: linear-gradient(180deg, #10b981 0%, rgba(16, 185, 129, 0.6) 100%);
+}
+
+.month-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.month-pill {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #1E424D;
+    background-color: #E5D595;
+    padding: 2px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+}
+
+/* Timeline Hoạt động tuần */
+.chart-activity-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 10px 0;
+}
+
+.activity-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.88rem;
+}
+
+.activity-label-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 600;
+}
+
+.activity-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.activity-progress-bar {
+    flex-grow: 1;
+    max-width: 180px;
+    height: 6px;
+    background: var(--bg);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+}
+
+.activity-progress-fill {
+    height: 100%;
+    border-radius: 3px;
+}
+
+
+/* --- 5. Responsive cục bộ cho Overview --- */
+@media (max-width: 1100px) {
+    .wallet-overview-grid { grid-template-columns: 1fr; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .charts-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+    .actions-grid { grid-template-columns: repeat(2, 1fr); }
+    .stats-grid { grid-template-columns: 1fr; }
+    .wallet-card { padding: 20px; min-height: 190px; }
+    .finance-card-content { flex-direction: column; gap: 24px; }
+    .finance-chart-side { height: 120px; }
+}

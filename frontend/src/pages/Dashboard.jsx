@@ -199,16 +199,22 @@ function Dashboard() {
     }, [navigate, queryClient])
 
     // ==========================================
-    // 5. RENDER PANEL QUA USEMEMO
+    // 5. RENDER PANEL QUA USEMEMO (CẬP NHẬT BINDING DATA)
     // ==========================================
     const renderedPanel = useMemo(() => {
         switch (activeTab) {
             case 'overview':
                 return (
                     <OverviewPanel
-                        wallet={wallet} userProfile={userProfile} transactions={transactions.slice(0, 5)}
-                        monthlyExpense={wallet?.monthExpense || 0} monthlyIncome={wallet?.monthIncome || 0}
-                        setModalType={setModalType} setActiveTab={setActiveTab}
+                        wallet={wallet}
+                        userProfile={userProfile}
+                        transactions={transactions.slice(0, 5)}
+                        monthlyExpense={wallet?.monthExpense || 0} // Gắn trực tiếp từ React Query data
+                        monthlyIncome={wallet?.monthIncome || 0}
+                        prevMonthlyExpense={wallet?.prevMonthExpense || 0} // Thêm dữ liệu tháng trước để vẽ đồ thị
+                        prevMonthlyIncome={wallet?.prevMonthIncome || 0}
+                        setModalType={setModalType}
+                        setActiveTab={setActiveTab}
                     />
                 )
             case 'transactions':
