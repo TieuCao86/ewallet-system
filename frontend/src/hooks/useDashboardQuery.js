@@ -10,12 +10,18 @@ export function useDashboardQuery() {
             if (!data) throw new Error("Dữ liệu trống");
 
             return {
-                userProfile: { fullName: data.fullName, email: data.email, kycStatus: data.kycStatus },
+                userProfile: {
+                    fullName: data.fullName,
+                    email: data.email,
+                    kycStatus: data.kycStatus
+                },
                 wallet: {
-                    walletId: data.walletNumber, balance: data.balance, currency: "đ",
-                    monthExpense: data.monthExpense, monthIncome: data.monthIncome,
-                    prevMonthExpense: data.prevMonthExpense, prevMonthIncome: data.prevMonthIncome,
-                }
+                    walletId: data.walletNumber,
+                    balance: data.balance,
+                    currency: "đ"
+                },
+                marketingBanners: data.marketingBanners || [],
+                linkedBanks: data.linkedBanks || []
             };
         },
         staleTime: 5 * 60 * 1000,

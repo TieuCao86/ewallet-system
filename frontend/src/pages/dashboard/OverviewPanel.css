@@ -183,72 +183,95 @@
 }
 
 
-/* --- 3. Thẻ Thống Kê (Stats Cards) --- */
-.stats-grid {
+/* --- 3. Banner Quảng Cáo (MỚI THÊM) --- */
+.dashboard-banners-container {
+    margin-top: 24px;
+}
+
+.banners-header {
+    margin-bottom: 12px;
+}
+
+.banners-header h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.banners-subtitle {
+    font-size: 0.85rem;
+    color: rgba(7, 23, 47, 0.6);
+}
+
+.marketing-banners-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: 1fr 1fr; /* Chia 2 cột ngang nhau */
     gap: 20px;
 }
 
-.stat-card {
-    background: var(--bg-card);
-    border-radius: 20px;
-    border: 1px solid var(--line);
-    padding: 24px;
-    display: flex;
-    align-items: center;
-    gap: 18px;
-    transition: transform 180ms ease, box-shadow 180ms ease;
+.marketing-banner-card {
+    height: 180px;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.stat-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 25px rgba(7, 23, 47, 0.03);
+.marketing-banner-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
 }
 
-.stat-icon {
-    width: 52px;
-    height: 52px;
-    border-radius: 14px;
-    display: grid;
-    place-items: center;
-    flex-shrink: 0;
+.banner-image-wrapper {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
 }
 
-.stat-icon.blue { background: rgba(0, 106, 255, 0.08); color: var(--accent); }
-.stat-icon.red { background: rgba(239, 68, 68, 0.08); color: #ef4444; }
-.stat-icon.green { background: rgba(34, 197, 94, 0.08); color: #22c55e; }
-.stat-icon.orange { background: rgba(249, 115, 22, 0.08); color: #f97316; }
+.banner-image-wrapper img {
+    width: 100%;
+    height: 100%;
+    /* Dùng cover để lấp đầy thẻ nhưng lấy trọng tâm để không mất chi tiết */
+    object-fit: cover;
+    object-position: right center;
+}
 
-.stat-info {
+.banner-info-overlay {
+    position: relative;
+    z-index: 2;
+    height: 100%;
+    width: 100%;
+    padding: 0 16px;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    justify-content: center;
+    /* Dải màu gradient đen nhạt từ trái sang để text trắng dễ đọc nhưng ko làm khuất ảnh bên phải */
+    background: linear-gradient(to right, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 65%, transparent 100%);
+    color: #ffffff;
 }
 
-.stat-info span {
-    font-size: 0.85rem;
-    color: var(--muted);
-    font-weight: 550;
+.banner-info-overlay h4 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin: 0 0 2px 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 80%; /* Giới hạn để chữ không tràn lấp hết ảnh */
 }
 
-.stat-info strong {
-    font-family: var(--font-display);
-    font-size: 1.35rem;
-    font-weight: 700;
-    color: var(--ink);
-}
-
-.trend-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 2px;
+.banner-action-link {
     font-size: 0.75rem;
     font-weight: 600;
-    margin-top: 2px;
+    color: #ffc107;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
 }
-.good-trend { color: #22c55e; }
-.bad-trend { color: #ef4444; }
 
 
 /* --- 4. Biểu Đồ & Khu Vực Đồ Thị Phía Dưới --- */
@@ -313,7 +336,6 @@
     transform: translateY(-2px);
 }
 
-/* Các tháng không được active sẽ mờ nhẹ để tạo chiều sâu giao diện */
 .finance-bar-group:not(.active) {
     opacity: 0.45;
 }
@@ -454,16 +476,6 @@
     justify-content: flex-end;
 }
 
-.single-bar {
-    width: 16px;
-    border-radius: 6px 6px 0 0;
-    transition: height 400ms ease;
-}
-
-.placeholder-bar {
-    background: rgba(255, 255, 255, 0.15);
-}
-
 .double-bars {
     display: flex;
     align-items: flex-end;
@@ -550,13 +562,12 @@
 /* --- 5. Responsive cục bộ cho Overview --- */
 @media (max-width: 1100px) {
     .wallet-overview-grid { grid-template-columns: 1fr; }
-    .stats-grid { grid-template-columns: repeat(2, 1fr); }
     .charts-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 480px) {
     .actions-grid { grid-template-columns: repeat(2, 1fr); }
-    .stats-grid { grid-template-columns: 1fr; }
+    .marketing-banners-grid { grid-template-columns: 1fr; } /* Chuyển banner thành 1 cột xếp chồng trên mobile */
     .wallet-card { padding: 20px; min-height: 190px; }
     .finance-card-content { flex-direction: column; gap: 24px; }
     .finance-chart-side { height: 120px; }

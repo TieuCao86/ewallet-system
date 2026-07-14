@@ -6,12 +6,12 @@ import { useQueryClient } from '@tanstack/react-query'
 // API & Custom Hooks
 import transactionApi from '../api/transactionApi'
 import { useDashboardQuery } from '../hooks/useDashboardQuery'
+import { useFinancialsQuery } from '../hooks/useFinancialsQuery'
 import useCountdown from '../hooks/useCountdown'
 import useKeyboardShortcuts from '../hooks/useKeyboardShortcuts'
 import useTransactionFilter from "../hooks/useTransactionFilter"
 import useExportCSV from "../hooks/useExportCSV"
 import { useTransactionsQuery } from '../hooks/useTransactionsQuery'
-import { useBankQuery } from "../hooks/useBankQuery.js"
 
 // Components & Panels
 import Sidebar from '../components/Sidebar'
@@ -29,6 +29,7 @@ import {
     TransferConfirmModal,
 } from '../components/modals'
 import './Dashboard.css'
+import {useBankQuery} from "../hooks/useBankQuery.js";
 
 const parseNumberFromCommas = (val) => val ? parseFloat(String(val).replace(/,/g, '')) || 0 : 0
 const formatNumberWithCommas = (val) => val ? parseInt(String(val).replace(/\D/g, ''), 10).toLocaleString('en-US') : ''
@@ -47,14 +48,28 @@ function Dashboard() {
     const wallet = dashboardCore?.wallet || null;
     const isLive = !!dashboardCore;
 
-    // Cơ chế Lazy Query tải danh mục ngân hàng thông minh
+    const marketingBanners = useMemo(() => {
+        const apiBanners = dashboardCore?.marketingBanners || [];
+        return apiBanners.map((banner, index) => ({
+            ...banner,
+            // Ép ảnh local tương ứng theo thứ tự banner trả về từ API
+            imageUrl: index === 0 ? "/banners/hoantien_50k.png" : "/banners/mienphichuyentien.png"
+        }));
+    }, [dashboardCore?.marketingBanners]);
+
+// --- SỬA TẠI ĐÂY: Thêm điều kiện ép phụ thuộc vào `isLive` (tức là dashboardCore đã load xong) ---
+
+// LAZY LOAD KHỐI 1: Chỉ chạy khi đang ở tab overview VÀ dashboard core đã load thành công
+    const { data: financialHistory } = useFinancialsQuery(activeTab === 'overview' && isLive);
+
+// LAZY LOAD KHỐI 2: Chỉ chạy khi thỏa mãn các tab/modal VÀ dashboard core đã load thành công
     const needBankData = activeTab === 'bank' || modalType === 'topup' || modalType === 'withdraw';
-    const { data: bankData } = useBankQuery(needBankData);
+    const { data: bankData } = useBankQuery(needBankData && isLive);
 
     const linkedBanks = bankData?.linkedBanks || [];
     const banks = bankData?.banks || [];
 
-    // Tải trang lịch sử giao dịch (Infinite Scroll)
+// Tải trang lịch sử giao dịch: Chỉ chạy khi thỏa mãn tab VÀ dashboard core đã load thành công
     const needTransactions = activeTab === "transactions" || activeTab === "history";
     const {
         data: txPageData,
@@ -62,7 +77,7 @@ function Dashboard() {
         hasNextPage,
         isFetchingNextPage,
         isLoading: isTxLoading
-    } = useTransactionsQuery(needTransactions);
+    } = useTransactionsQuery(needTransactions && isLive);
 
     const transactions = useMemo(() => {
         return txPageData ? txPageData.pages.flatMap(page => page.data) : [];
@@ -80,7 +95,6 @@ function Dashboard() {
         setToast({ show: true, message, type: 'success' })
         setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000)
 
-        // Làm mới danh sách lịch sử giao dịch ngầm
         if (activeTab === "transactions" || activeTab === "history") {
             queryClient.invalidateQueries({ queryKey: ["transactions"] });
         } else {
@@ -88,6 +102,7 @@ function Dashboard() {
         }
 
         queryClient.invalidateQueries({ queryKey: ["dashboard-core"] });
+        queryClient.invalidateQueries({ queryKey: ["dashboard-financials"] }); // Reset cả biểu đồ sau khi giao dịch thành công
     }, [queryClient, activeTab])
 
     // 3. LUỒNG CHUYỂN TIỀN (TRANSFER)
@@ -199,7 +214,7 @@ function Dashboard() {
     }, [navigate, queryClient])
 
     // ==========================================
-    // 5. RENDER PANEL QUA USEMEMO (CẬP NHẬT BINDING DATA)
+    // 5. RENDER PANEL QUA USEMEMO (TINH GỌN CHO OVERVIEW)
     // ==========================================
     const renderedPanel = useMemo(() => {
         switch (activeTab) {
@@ -208,11 +223,8 @@ function Dashboard() {
                     <OverviewPanel
                         wallet={wallet}
                         userProfile={userProfile}
-                        transactions={transactions.slice(0, 5)}
-                        monthlyExpense={wallet?.monthExpense || 0} // Gắn trực tiếp từ React Query data
-                        monthlyIncome={wallet?.monthIncome || 0}
-                        prevMonthlyExpense={wallet?.prevMonthExpense || 0} // Thêm dữ liệu tháng trước để vẽ đồ thị
-                        prevMonthlyIncome={wallet?.prevMonthIncome || 0}
+                        marketingBanners={marketingBanners}
+                        financialHistory={financialHistory} // Gắn luồng dữ liệu biểu đồ động
                         setModalType={setModalType}
                         setActiveTab={setActiveTab}
                     />
@@ -261,10 +273,10 @@ function Dashboard() {
                 return null
         }
     }, [
-        activeTab, wallet, userProfile, transactions, transferError, transferPhone, transferAmount, transferNote,
-        transactionFilter, historyFilter, formatCurrency, exportCSV, handleTransfer, linkingStep, bankPhone, bankAccountNo,
-        selectedBank, linkedBanks, banks, kycFiles, isLive, isEditMode, editProfile, securityToggles, handleLogout,
-        devices, loginHistory, hasNextPage, fetchNextPage, isTxLoading, isFetchingNextPage
+        activeTab, wallet, userProfile, marketingBanners, financialHistory, transferError, transferPhone, transferAmount,
+        transferNote, transactionFilter, historyFilter, formatCurrency, exportCSV, handleTransfer, linkingStep, bankPhone,
+        bankAccountNo, selectedBank, linkedBanks, banks, kycFiles, isLive, isEditMode, editProfile, securityToggles,
+        handleLogout, devices, loginHistory, hasNextPage, fetchNextPage, isTxLoading, isFetchingNextPage
     ]);
 
     if (isCoreLoading) {
