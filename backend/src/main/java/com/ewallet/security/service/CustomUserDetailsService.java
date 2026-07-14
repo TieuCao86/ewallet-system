@@ -15,7 +15,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     private final UserRepository userRepository;
 
     @Override
-    @Cacheable(value = "user-details", key = "#email")
+    @Cacheable(value = "user-details", key = "#email", sync = true)
     public UserDetails loadUserByUsername(String email) {
 
         System.out.println("=== LOAD USER FROM DATABASE ===");
