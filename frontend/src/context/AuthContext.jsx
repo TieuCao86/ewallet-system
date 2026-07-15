@@ -1,7 +1,7 @@
 // src/context/AuthContext.js
 import { createContext, useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import authService from "../api/authService";
+import authService from "../features/auth/api/authService.js";
 
 const AuthContext = createContext({});
 

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import Modal from '../Modal'
-import FormInput from '../FormInput'
-import OtpVerification from '../OtpVerification'
-import transactionApi from '../../api/transactionApi'
+import Modal from '../layout/Modal.jsx'
+import FormInput from '../ui/FormInput.jsx'
+import OtpVerification from '../../features/security/components/modals/OtpVerification.jsx'
+import transactionApi from '../../features/transaction/api/transactionApi.js'
 
 const parseNumberFromCommas = (val) => val ? parseFloat(String(val).replace(/,/g, '')) || 0 : 0
 const formatNumberWithCommas = (val) => val ? parseInt(String(val).replace(/\D/g, ''), 10).toLocaleString('en-US') : ''

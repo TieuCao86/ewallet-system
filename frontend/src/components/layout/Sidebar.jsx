@@ -1,5 +1,5 @@
 import { Wallet, ArrowsLeftRight, ShieldCheck, User, SignOut, CreditCard, QrCode, Clock } from '@phosphor-icons/react'
-import '../pages/Dashboard.css' // Import style dependencies
+import '../../pages/Dashboard.css' // Import style dependencies
 
 function Sidebar({ activeTab, setActiveTab, onLogout }) {
   return (

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import walletService from "../api/walletService";
+import walletService from "../../dashboard/api/walletService.js";
 
 export function useBankQuery(enabled = false) {
     return useQuery({

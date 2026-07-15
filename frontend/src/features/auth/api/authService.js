@@ -1,4 +1,4 @@
-import axiosClient from "./axiosClient.js";
+import axiosClient from "../../../api/axiosClient.js";
 
 const authService = {
     // Đăng nhập hệ thống (Set HttpOnly Cookie)

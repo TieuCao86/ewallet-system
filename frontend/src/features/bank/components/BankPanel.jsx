@@ -1,5 +1,5 @@
 import { Warning } from '@phosphor-icons/react'
-import FormInput from '../../components/FormInput'
+import FormInput from '../../../components/ui/FormInput.jsx'
 import './BankPanel.css'
 
 function BankPanel({

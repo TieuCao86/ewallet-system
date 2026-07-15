@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { DownloadSimple } from "@phosphor-icons/react";
-import "../pages/dashboard/HistoryPanel.css";
+import "./HistoryPanel.css";
 
 function TransactionHistoryTable({
                                      transactions = [], // Mảng phẳng flatMap từ React Query truyền xuống

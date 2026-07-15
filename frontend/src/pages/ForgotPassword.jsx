@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, Phone, LockSimple, Key, UserFocus, ShieldCheck, CheckCircle, Warning, ChatCenteredText } from '@phosphor-icons/react'
-import FormInput from '../components/FormInput.jsx'
+import FormInput from '../components/ui/FormInput.jsx'
 import './Auth.css'
 
 function ForgotPassword() {

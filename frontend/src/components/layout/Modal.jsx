@@ -1,4 +1,4 @@
-import '../pages/Dashboard.css' // Import style dependencies
+import '../../pages/Dashboard.css' // Import style dependencies
 
 function Modal({ isOpen, onClose, title, children }) {
   if (!isOpen) return null
