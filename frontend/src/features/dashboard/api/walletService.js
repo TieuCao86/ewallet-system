@@ -1,4 +1,4 @@
-import axiosClient from "./axiosClient.js";
+import axiosClient from "../../../api/axiosClient.js";
 
 const walletService = {
     // 1. Lấy thông tin lõi Dashboard (Chỉ gồm Profile, Ví, Banner quảng cáo - Tốc độ < 10ms)

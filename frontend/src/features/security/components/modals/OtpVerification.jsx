@@ -1,5 +1,5 @@
 import { Warning } from "@phosphor-icons/react";
-import FormInput from "./FormInput.jsx";
+import FormInput from "../../../../components/ui/FormInput.jsx";
 
 export default function OtpVerification({
                                             phone,

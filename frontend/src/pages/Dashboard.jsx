@@ -4,32 +4,32 @@ import { Gear } from '@phosphor-icons/react'
 import { useQueryClient } from '@tanstack/react-query'
 
 // API & Custom Hooks
-import transactionApi from '../api/transactionApi'
-import { useDashboardQuery } from '../hooks/useDashboardQuery'
-import { useFinancialsQuery } from '../hooks/useFinancialsQuery'
+import transactionApi from '../features/transaction/api/transactionApi.js'
+import { useDashboardQuery } from '../features/dashboard/hooks/useDashboardQuery.js'
+import { useFinancialsQuery } from '../features/dashboard/hooks/useFinancialsQuery.js'
 import useCountdown from '../hooks/useCountdown'
 import useKeyboardShortcuts from '../hooks/useKeyboardShortcuts'
-import useTransactionFilter from "../hooks/useTransactionFilter"
+import useTransactionFilter from "../features/transaction/hooks/useTransactionFilter.js"
 import useExportCSV from "../hooks/useExportCSV"
-import { useTransactionsQuery } from '../hooks/useTransactionsQuery'
+import { useTransactionsQuery } from '../features/transaction/hooks/useTransactionsQuery.js'
 
 // Components & Panels
-import Sidebar from '../components/Sidebar'
-import ToastAlert from '../components/ToastAlert'
-import OverviewPanel from './dashboard/OverviewPanel'
-import TransactionsPanel from './dashboard/TransactionsPanel'
-import MyQRPanel from './dashboard/MyQRPanel'
-import HistoryPanel from './dashboard/HistoryPanel'
-import BankPanel from './dashboard/BankPanel'
-import KycPanel from './dashboard/KycPanel'
-import ProfilePanel from './dashboard/ProfilePanel'
+import Sidebar from '../components/layout/Sidebar.jsx'
+import ToastAlert from '../components/feedback/ToastAlert.jsx'
+import OverviewPanel from '../features/dashboard/components/OverviewPanel.jsx'
+import TransactionsPanel from '../features/transaction/components/TransactionsPanel.jsx'
+import MyQRPanel from '../features/dashboard/components/MyQRPanel.jsx'
+import HistoryPanel from '../features/transaction/components/HistoryPanel.jsx'
+import BankPanel from '../features/bank/components/BankPanel.jsx'
+import KycPanel from '../features/kyc/components/KycPanel.jsx'
+import ProfilePanel from '../features/dashboard/components/ProfilePanel.jsx'
 import {
     TopupModal,
     WithdrawModal,
     TransferConfirmModal,
 } from '../components/modals'
 import './Dashboard.css'
-import {useBankQuery} from "../hooks/useBankQuery.js";
+import {useBankQuery} from "../features/bank/hooks/useBankQuery.js";
 
 const parseNumberFromCommas = (val) => val ? parseFloat(String(val).replace(/,/g, '')) || 0 : 0
 const formatNumberWithCommas = (val) => val ? parseInt(String(val).replace(/\D/g, ''), 10).toLocaleString('en-US') : ''

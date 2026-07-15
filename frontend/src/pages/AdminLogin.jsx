@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import useAuth from '../hooks/useAuth'
+import useAuth from '../features/auth/hooks/useAuth.js'
 import { ArrowLeft, EnvelopeSimple, LockSimple, ShieldCheck, Warning } from '@phosphor-icons/react'
-import FormInput from '../components/FormInput.jsx'
-import ToastAlert from '../components/ToastAlert'
+import FormInput from '../components/ui/FormInput.jsx'
+import ToastAlert from '../components/feedback/ToastAlert.jsx'
 import './Auth.css'
 
 export default function AdminLogin() {

@@ -1,6 +1,6 @@
 import { Warning } from '@phosphor-icons/react'
-import Modal from '../Modal'
-import FormInput from '../FormInput'
+import Modal from '../layout/Modal.jsx'
+import FormInput from '../ui/FormInput.jsx'
 
 export default function UnlinkBankModal({
   isOpen,

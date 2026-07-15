@@ -1,5 +1,5 @@
 import { CheckCircle, Warning } from '@phosphor-icons/react'
-import '../pages/Dashboard.css' // Import style dependencies
+import '../../pages/Dashboard.css' // Import style dependencies
 
 function ToastAlert({ show, message, type = 'success' }) {
   if (!show) return null

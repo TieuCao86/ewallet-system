@@ -1,5 +1,5 @@
 import './HistoryPanel.css';
-import TransactionHistoryTable from "../../components/TransactionHistoryTable.jsx";
+import TransactionHistoryTable from "./TransactionHistoryTable.jsx";
 
 function HistoryPanel({
                           wallet,

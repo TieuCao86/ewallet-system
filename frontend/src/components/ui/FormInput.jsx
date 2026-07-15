@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Eye, EyeSlash } from '@phosphor-icons/react'
-import '../pages/Auth.css' // Import style dependencies
+import '../../pages/Auth.css' // Import style dependencies
 
 function FormInput({
   label,

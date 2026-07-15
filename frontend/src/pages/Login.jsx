@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, EnvelopeSimple, LockSimple, ShieldCheck } from '@phosphor-icons/react'
 
-import FormInput from '../components/FormInput'
-import useAuth from '../hooks/useAuth'
+import FormInput from '../components/ui/FormInput.jsx'
+import useAuth from '../features/auth/hooks/useAuth.js'
 
 import './Auth.css'
 

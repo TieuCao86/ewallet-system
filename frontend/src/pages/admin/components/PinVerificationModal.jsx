@@ -1,7 +1,7 @@
 import React from 'react'
 import { Warning } from '@phosphor-icons/react'
-import Modal from '../../../components/Modal'
-import FormInput from '../../../components/FormInput'
+import Modal from '../../../components/layout/Modal.jsx'
+import FormInput from '../../../components/ui/FormInput.jsx'
 
 export default function PinVerificationModal({
   isOpen,

@@ -1,5 +1,5 @@
 import { CheckCircle, QrCode } from '@phosphor-icons/react'
-import Modal from '../Modal'
+import Modal from '../layout/Modal.jsx'
 
 export default function QrScannerModal({
   isOpen,

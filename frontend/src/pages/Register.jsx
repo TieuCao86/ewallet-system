@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, EnvelopeSimple, LockSimple, User, Phone, ShieldCheck } from '@phosphor-icons/react'
-import FormInput from '../components/FormInput.jsx'
+import FormInput from '../components/ui/FormInput.jsx'
 import './Auth.css'
-import authService from "../api/authService.js";
+import authService from "../features/auth/api/authService.js";
 
 function Register() {
   const [fullName, setFullName] = useState('')

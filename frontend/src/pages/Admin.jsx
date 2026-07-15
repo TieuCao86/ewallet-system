@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Warning } from '@phosphor-icons/react'
-import ToastAlert from '../components/ToastAlert'
+import ToastAlert from '../components/feedback/ToastAlert.jsx'
 
 // Import Sub Panels
 import OverviewPanel from './admin/OverviewPanel'

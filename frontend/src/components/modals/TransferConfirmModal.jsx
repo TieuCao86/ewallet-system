@@ -1,7 +1,7 @@
 import { Warning } from '@phosphor-icons/react'
-import Modal from '../Modal'
-import FormInput from '../FormInput'
-import OtpVerification from '../OtpVerification.jsx'
+import Modal from '../layout/Modal.jsx'
+import FormInput from '../ui/FormInput.jsx'
+import OtpVerification from '../../features/security/components/modals/OtpVerification.jsx'
 
 export default function TransferConfirmModal({
                                                isOpen,
