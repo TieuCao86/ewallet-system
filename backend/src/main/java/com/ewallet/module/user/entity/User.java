@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
 @Builder
 public class User extends BaseEntity implements Serializable {
 
-    @Column(nullable = false, length = 100)
+    @Column(nullable = false, length = 100, columnDefinition = "NVARCHAR(100)")
     private String fullName;
 
     @Column(nullable = false, unique = true, length = 100)
